@@ -1089,27 +1089,29 @@ function renderTrain(data){
   var checkpointMap = {};
   (data.checkpoints||[]).forEach(function(c){ checkpointMap[c.stage] = c; });
 
-  // Build progress line
-  var doneCount = (data.checkpoints||[]).filter(function(c){
-    return c.status === "ATTENDED";
-  }).length;
-
   track.innerHTML = STAGE_ORDER.map(function(stage, idx){
-    var cp     = checkpointMap[stage] || { status:"PENDING" };
-    var lbl    = STAGE_LABELS[stage] || { name:stage, icon:"📍" };
-    var isCur  = stage === data.currentStage && cp.status !== "ATTENDED";
-    var isDone = cp.status === "ATTENDED";
-    var isPend = !isCur && !isDone;
+    var cp   = checkpointMap[stage] || { status:"PENDING" };
+    var lbl  = STAGE_LABELS[stage]  || { name:stage, icon:"📍" };
+
+    var isDone   = cp.status === "ATTENDED";
+    var isCalled = cp.status === "WAITING" || cp.status === "CALLED";
+    var isCur    = stage === data.currentStage && !isDone;
+    var isPend   = !isDone && !isCur;
 
     var cls = isDone ? "attended" : isCur ? "current" : "pending";
 
-    var badge = isDone
-      ? "<span class='station-badge badge-attended'>✓ Selesai</span>"
-      : isCur
-        ? "<span class='station-badge badge-current'>⬤ Sedang Menunggu</span>"
-        : "<span class='station-badge badge-pending'>Belum Sampai</span>";
+    var badge;
+    if(isDone){
+      badge = "<span class='station-badge badge-attended'>✓ Selesai</span>";
+    } else if(isCur && isCalled){
+      badge = "<span class='station-badge badge-current'>🔔 Dipanggil — Sila Ke Sini</span>";
+    } else if(isCur){
+      badge = "<span class='station-badge badge-current'>⏳ Sedang Menunggu</span>";
+    } else {
+      badge = "<span class='station-badge badge-pending'>Belum Sampai</span>";
+    }
 
-    var timeHtml = isDone && cp.calledAt
+    var timeHtml = cp.calledAt
       ? "<span class='station-time'>" + cp.calledAt + "</span>"
       : "";
 
