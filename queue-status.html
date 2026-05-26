@@ -1028,7 +1028,11 @@ function fetchStatus(num, cb){
 // ══════════════════════════════════════════════════════
 function showStatusScreen(data){
   _lastStatus = data;
-
+   // Reset notification flags when patient advances to a new stage
+   if(_lastStatus && _lastStatus.currentStage !== data.currentStage){
+     _calledNotified  = false;
+     _standbyNotified = false;
+   }
   // Switch screen
   document.getElementById("screen-input").classList.remove("active");
   document.getElementById("screen-status").classList.add("active");
@@ -1152,29 +1156,48 @@ function getStageLabel(stage){
 //  CHECK ALERTS — standby + called
 // ══════════════════════════════════════════════════════
 function checkAlerts(data){
-  // CALLED — my number is the current calling number at my stage
-  var isCalled = data.currentCallingNum === data.inputNum;
-  if(isCalled && !_calledNotified){
+  if(!data || data.status !== "success") return;
+
+  var myNum    = data.inputNum;
+  var myStage  = data.currentStage;
+  var curCalling = data.currentCallingNum;
+  var ahead    = data.numbersAhead;
+
+  // ── CALLED — my exact number is now being called at my current stage ──
+  // Triggers when: my entry exists at currentStage with status WAITING/CALLED
+  var myCheckpoint = (data.checkpoints||[]).filter(function(c){
+    return c.stage === myStage;
+  })[0];
+
+  var iAmBeingCalled = myCheckpoint
+    && (myCheckpoint.status === "WAITING" || myCheckpoint.status === "CALLED")
+    && curCalling === myNum;
+
+  if(iAmBeingCalled && !_calledNotified){
     _calledNotified = true;
     showCalledScreen(data);
     sendNotification(
       "🔔 Nombor Anda Dipanggil!",
-      "No. " + String(data.inputNum).padStart(4,"0") + " — sila ke " + getStageLabel(data.currentStage)
+      "No. " + String(myNum).padStart(4,"0") +
+      " — sila ke " + getStageLabel(myStage) + " sekarang"
     );
     playNotifSound();
-    return;
+    return; // don't also show standby
   }
 
-  // STANDBY — 1 number to go
-  if(data.numbersAhead === 1 && !_standbyNotified){
+  // ── STANDBY — exactly 1 number before mine at my current stage ──
+  var isStandby = ahead === 1 && !iAmBeingCalled;
+
+  if(isStandby && !_standbyNotified){
     _standbyNotified = true;
     showToast("standby",
       "⏳ Bersedia — 1 Nombor Lagi!",
-      "No. anda hampir dipanggil di " + getStageLabel(data.currentStage)
+      "No. anda hampir dipanggil di " + getStageLabel(myStage)
     );
     sendNotification(
       "⏳ Bersedia Sekarang!",
-      "Hanya 1 nombor lagi sebelum giliran anda di " + getStageLabel(data.currentStage)
+      "Hanya 1 nombor lagi sebelum giliran anda di " +
+      getStageLabel(myStage)
     );
     playNotifSound();
   }
