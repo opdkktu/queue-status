@@ -759,7 +759,10 @@ body {
   <!-- ══ SCREEN: INPUT ══ -->
   <section class="screen active" id="screen-input">
     <div class="input-hero">
-      <div class="input-hero-icon">🎫</div>
+      <img src="prima.png" alt="PRIMA"
+        style="width:90px;height:90px;object-fit:contain;
+        border-radius:16px;margin-bottom:20px;
+        animation:iconBob 3s ease-in-out infinite;">
       <h1>Semak <span>Giliran</span> Anda</h1>
       <p>Masukkan nombor giliran untuk melihat status dan anggaran masa menunggu</p>
     </div>
@@ -1046,10 +1049,17 @@ function showStatusScreen(data){
   document.getElementById("badge-series").textContent =
     "Siri " + data.series + "xxx · " + getStageLabel(data.currentStage);
    var nameEl = document.getElementById("badge-name");
+   var notYet = data.notCalledYet;
    if(nameEl){
      nameEl.textContent = data.name ? data.name : "";
      nameEl.style.display = data.name ? "block" : "none";
-   }
+   }else if(notYet){
+    nameEl.textContent = "Menunggu panggilan pendaftaran";
+    nameEl.style.color = "var(--amber)";
+    nameEl.style.display = "block";
+  } else {
+    nameEl.style.display = "none";
+  }
   // Checkpoint train
   renderTrain(data);
 
@@ -1061,8 +1071,9 @@ function showStatusScreen(data){
     var el = document.getElementById("call-num-big");
     el.classList.remove("flip"); void el.offsetWidth; el.classList.add("flip");
   }
-  document.getElementById("call-stage-label").textContent =
-    "Nombor Semasa Dipanggil — " + getStageLabel(data.currentStage);
+ document.getElementById("call-stage-label").textContent = data.notCalledYet
+  ? "Nombor Semasa Dipanggil — Kaunter Pendaftaran"
+  : "Nombor Semasa Dipanggil — " + getStageLabel(data.currentStage);
   document.getElementById("call-stage-name").textContent =
     (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
 
