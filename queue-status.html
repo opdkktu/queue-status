@@ -807,6 +807,8 @@ body {
       <div class="patient-info">
         <div class="patient-label">Nombor Giliran Anda</div>
         <div class="patient-series" id="badge-series">—</div>
+         <div id="badge-name" style="font-size:13px;font-weight:600;color:var(--accent);
+       margin-top:3px;display:none;"></div>
       </div>
       <button class="btn-reset" onclick="resetToInput()">← Tukar</button>
     </div>
@@ -1043,7 +1045,11 @@ function showStatusScreen(data){
   document.getElementById("badge-num").textContent = numPad;
   document.getElementById("badge-series").textContent =
     "Siri " + data.series + "xxx · " + getStageLabel(data.currentStage);
-
+   var nameEl = document.getElementById("badge-name");
+   if(nameEl){
+     nameEl.textContent = data.name ? data.name : "";
+     nameEl.style.display = data.name ? "block" : "none";
+   }
   // Checkpoint train
   renderTrain(data);
 
@@ -1108,16 +1114,29 @@ function renderTrain(data){
     if(isDone){
       badge = "<span class='station-badge badge-attended'>✓ Selesai</span>";
     } else if(isCur && isCalled){
-      badge = "<span class='station-badge badge-current'>🔔 Dipanggil — Sila Ke Sini</span>";
+      var roomLabel = "";
+  if(stage === "DOCTOR" && cp.calledBy){
+    // calledBy = "DOKTOR_1", "DOKTOR_2" etc — extract room number
+    var roomNum = cp.calledBy.replace(/\D/g,"");
+    roomLabel = roomNum ? " — Bilik " + roomNum : "";
+  } else if(stage === "NURSE" && cp.calledBy){
+    roomLabel = " — Kaunter Jururawat";
+  }
+  badge = "<span class='station-badge badge-current'>🔔 Dipanggil" + roomLabel + "</span>";
     } else if(isCur){
       badge = "<span class='station-badge badge-current'>⏳ Sedang Menunggu</span>";
     } else {
       badge = "<span class='station-badge badge-pending'>Belum Sampai</span>";
     }
 
-    var timeHtml = cp.calledAt
-      ? "<span class='station-time'>" + cp.calledAt + "</span>"
-      : "";
+    var roomInfo = "";
+if(stage === "DOCTOR" && cp.calledBy){
+  var rn = cp.calledBy.replace(/\D/g,"");
+  if(rn) roomInfo = " · <span style='color:var(--accent2);font-weight:600;'>Bilik " + rn + "</span>";
+}
+var timeHtml = cp.calledAt
+  ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
+  : "";
 
     return "<div class='station "+cls+"'>" +
       "<div class='station-dot'>" + lbl.icon + "</div>" +
@@ -1211,8 +1230,15 @@ function showCalledScreen(data){
   document.getElementById("screen-called").classList.add("active");
   var numPad = String(data.inputNum).padStart(4,"0");
   document.getElementById("called-num-big").textContent = numPad;
-  document.getElementById("called-sub").textContent =
-    "Sila pergi ke " + ((STAGE_LABELS[data.currentStage]||{}).name || data.currentStage) + " sekarang";
+  var dest = (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
+// Add room if doctor
+var doctorCp = (data.checkpoints||[]).filter(function(c){ return c.stage==="DOCTOR"; })[0];
+if(data.currentStage === "DOCTOR" && doctorCp && doctorCp.calledBy){
+  var rn = doctorCp.calledBy.replace(/\D/g,"");
+  if(rn) dest = "Bilik Doktor " + rn;
+}
+document.getElementById("called-sub").textContent =
+  (data.name ? data.name + " — " : "") + "Sila pergi ke " + dest + " sekarang";
 
   showToast("calling",
     "🔔 Nombor " + numPad + " Dipanggil!",
