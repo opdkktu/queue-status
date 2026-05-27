@@ -1072,7 +1072,15 @@ function submitQueueNum(){
       errEl.style.animation = "errShake .3s ease";
       return;
     }
-
+// Add this inside the fetchStatus callback, after showStatusScreen(data):
+if ("Notification" in window && Notification.permission === "default") {
+  // Small delay so screen has switched first
+  setTimeout(function() {
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.Notifications.requestPermission();
+    });
+  }, 1500);
+}
     showStatusScreen(data);
     startPolling();
   });
@@ -1395,6 +1403,11 @@ function requestNotifPermission(){
     updateNotifBtn();
 
     if(_notifGranted){
+      // Set the tag immediately after permission granted
+        await OneSignal.User.addTag(
+          "queue_num", 
+          parseInt(_queueNum).toString()
+        );
       showToast("calling","✅ Notifikasi Dibenarkan",
         "Anda akan diberitahu walaupun apl ditutup");
 
