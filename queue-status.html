@@ -1003,8 +1003,12 @@ document.getElementById("queue-input").addEventListener("input", function(){
 //  SUBMIT QUEUE NUMBER
 // ══════════════════════════════════════════════════════
 function submitQueueNum(){
-   // Ask notification permission on first user action
-  _askNotifPermission();
+   // Ask notification permission on first user action via OneSignal
+   if (window.OneSignalDeferred) {
+     OneSignalDeferred.push(async function(OneSignal) {
+       await OneSignal.Notifications.requestPermission();
+     });
+   }
   var val = document.getElementById("queue-input").value.trim().replace(/\D/g,"");
   var errEl = document.getElementById("input-error");
 
@@ -1022,7 +1026,13 @@ function submitQueueNum(){
   _queueNum = parseInt(val);
   _calledNotified  = false;
   _standbyNotified = false;
-
+   
+// ---> ADD THIS NEW ONESIGNAL LINE HERE <---
+  if (window.OneSignalDeferred) {
+    OneSignalDeferred.push(async function(OneSignal) {
+      OneSignal.User.addTag("queue_num", _queueNum.toString());
+    });
+  }
   // Show loading state on button
   var btn = document.getElementById("btn-check");
   btn.disabled = true;
@@ -1495,16 +1505,20 @@ try {
   document.head.appendChild(manifestLink);
 } catch(e){}
    // ── REGISTER SERVICE WORKER ──
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js")
-    .then(function(reg){
-      console.log("[SW] Registered:", reg.scope);
-      window._swReg = reg;
-    })
-    .catch(function(err){
-      console.warn("[SW] Failed:", err);
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "de60a9d2-843f-4bf7-97d0-c9ff381a222f",
+      safari_web_id: "web.onesignal.auto.1a908d8f-b1c2-454b-a8c2-6bb9d82d2555",
+      notifyButton: {
+        enable: true,
+         displayPredicate: function() { return OneSignal.Notifications.permission !
+      },
     });
-}
+  });
+</script>
 </script>
 
 </body>
