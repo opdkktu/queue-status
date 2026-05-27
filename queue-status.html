@@ -1403,11 +1403,10 @@ function requestNotifPermission(){
     updateNotifBtn();
 
     if(_notifGranted){
-      // Set the tag immediately after permission granted
-        await OneSignal.User.addTag(
-          "queue_num", 
-          parseInt(_queueNum).toString()
-        );
+       if(window.OneSignalDeferred){
+    OneSignalDeferred.push(async function(OneSignal){
+      await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
+    });
       showToast("calling","✅ Notifikasi Dibenarkan",
         "Anda akan diberitahu walaupun apl ditutup");
 
