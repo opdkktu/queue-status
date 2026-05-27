@@ -792,13 +792,14 @@ body {
     </div>
 
     <div class="install-hint" id="install-hint" style="margin-top:20px;display:none;">
-      <span class="install-hint-icon">📱</span>
-      <div>
-        <strong>Tambah ke Skrin Utama</strong><br>
-        Buka dalam pelayar → ketik <strong>⋮</strong> → <strong>"Add to Home Screen"</strong> untuk akses pantas masa hadapan
-      </div>
-      <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
-    </div>
+  <span class="install-hint-icon">📱</span>
+  <div>
+    <strong>Tambah ke Skrin Utama</strong><br>
+    Selepas benarkan notifikasi, ikon PRIMA akan muncul.<br>
+    <span id="install-ios-hint">iOS: ketik <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
+  </div>
+  <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
+</div>
   </section>
 
   <!-- ══ SCREEN: STATUS ══ -->
@@ -969,11 +970,25 @@ window.addEventListener("load", function(){
 //  PWA — ADD TO HOME SCREEN
 // ══════════════════════════════════════════════════════
 function checkInstallHint(){
-  // Show hint if not in standalone mode
   var isStandalone = window.matchMedia("(display-mode: standalone)").matches
     || window.navigator.standalone;
-  if(!isStandalone){
-    document.getElementById("install-hint").style.display = "flex";
+  if(isStandalone) return;
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isSafari = /safari/i.test(navigator.userAgent)
+    && !/chrome/i.test(navigator.userAgent);
+
+  var hint = document.getElementById("install-hint");
+  var iosHint = document.getElementById("install-ios-hint");
+
+  if(isIOS && isSafari){
+    // iOS — always show manual instruction
+    hint.style.display = "flex";
+    if(iosHint) iosHint.style.display = "inline";
+  } else {
+    // Android/Chrome — hide until beforeinstallprompt fires
+    hint.style.display = "none";
+    if(iosHint) iosHint.style.display = "none";
   }
 }
 
