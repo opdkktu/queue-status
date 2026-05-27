@@ -972,24 +972,21 @@ window.addEventListener("load", function(){
 function checkInstallHint(){
   var isStandalone = window.matchMedia("(display-mode: standalone)").matches
     || window.navigator.standalone;
-  if(isStandalone) return;
-
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  var isSafari = /safari/i.test(navigator.userAgent)
-    && !/chrome/i.test(navigator.userAgent);
-
-  var hint = document.getElementById("install-hint");
-  var iosHint = document.getElementById("install-ios-hint");
-
-  if(isIOS && isSafari){
-    // iOS — always show manual instruction
-    hint.style.display = "flex";
-    if(iosHint) iosHint.style.display = "inline";
-  } else {
-    // Android/Chrome — hide until beforeinstallprompt fires
-    hint.style.display = "none";
-    if(iosHint) iosHint.style.display = "none";
+  if(isStandalone){
+    document.getElementById("install-hint").style.display = "none";
+    return;
   }
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+  var hint  = document.getElementById("install-hint");
+  var iosEl = document.getElementById("install-ios-hint");
+
+  if(isIOS){
+    // Always show on iOS — must add to home screen first for notifications
+    hint.style.display = "flex";
+    if(iosEl) iosEl.style.display = "inline";
+  }
+  // Android — shown by beforeinstallprompt event
 }
 
 // ══════════════════════════════════════════════════════
@@ -1006,6 +1003,8 @@ document.getElementById("queue-input").addEventListener("input", function(){
 //  SUBMIT QUEUE NUMBER
 // ══════════════════════════════════════════════════════
 function submitQueueNum(){
+   // Ask notification permission on first user action
+  _askNotifPermission();
   var val = document.getElementById("queue-input").value.trim().replace(/\D/g,"");
   var errEl = document.getElementById("input-error");
 
@@ -1044,7 +1043,33 @@ function submitQueueNum(){
     startPolling();
   });
 }
+function _askNotifPermission(){
+  if(!("Notification" in window)) return;
+  if(Notification.permission !== "default") return; // already granted or denied
 
+  Notification.requestPermission().then(function(perm){
+    _notifGranted = perm === "granted";
+    updateNotifBtn();
+
+    if(_notifGranted){
+      // Register SW immediately
+      if("serviceWorker" in navigator){
+        navigator.serviceWorker.register("sw.js")
+          .then(function(reg){
+            window._swReg = reg;
+            console.log("[SW] Registered");
+          });
+      }
+      // Trigger Add to Home Screen on Android
+      if(window._deferredPrompt){
+        window._deferredPrompt.prompt();
+        window._deferredPrompt.userChoice.then(function(r){
+          window._deferredPrompt = null;
+        });
+      }
+    }
+  });
+}
 // ══════════════════════════════════════════════════════
 //  FETCH STATUS FROM GAS
 // ══════════════════════════════════════════════════════
