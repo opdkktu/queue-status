@@ -917,7 +917,20 @@ var STAGE_LABELS = {
   TCA     : { name:"Kaunter TCA",         icon:"📅", short:"TCA"        }
 };
 var STAGE_ORDER = ["KAUNTER","NURSE","DOCTOR","TCA"];
-
+   
+// ── CAPTURE ADD TO HOME SCREEN PROMPT ──
+window._deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  window._deferredPrompt = e;
+  // Show install hint
+  document.getElementById("install-hint").style.display = "flex";
+});
+window.addEventListener("appinstalled", function(){
+  window._deferredPrompt = null;
+  document.getElementById("install-hint").style.display = "none";
+  showToast("calling","✅ Apl Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
+});
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
@@ -1299,14 +1312,30 @@ function resetToInput(){
 // ══════════════════════════════════════════════════════
 function requestNotifPermission(){
   if(!("Notification" in window)){
-    showToast("standby","Notifikasi tidak disokong","Pelayar ini tidak menyokong notifikasi");
+    showToast("standby","Tidak Disokong","Pelayar ini tidak menyokong notifikasi");
     return;
   }
+
   Notification.requestPermission().then(function(perm){
     _notifGranted = perm === "granted";
     updateNotifBtn();
+
     if(_notifGranted){
-      showToast("calling","✅ Notifikasi Dibenarkan","Anda akan menerima amaran apabila nombor hampir dipanggil");
+      showToast("calling","✅ Notifikasi Dibenarkan",
+        "Anda akan diberitahu walaupun apl ditutup");
+
+      // Trigger Add to Home Screen prompt if available
+      if(window._deferredPrompt){
+        window._deferredPrompt.prompt();
+        window._deferredPrompt.userChoice.then(function(result){
+          console.log("[PWA] Install choice:", result.outcome);
+          window._deferredPrompt = null;
+          document.getElementById("install-hint").style.display = "none";
+        });
+      }
+    } else {
+      showToast("standby","Notifikasi Ditolak",
+        "Benarkan notifikasi dalam tetapan pelayar untuk menerima amaran");
     }
   });
 }
@@ -1330,16 +1359,21 @@ function updateNotifBtn(){
 }
 
 function sendNotification(title, body){
-  if(!_notifGranted || Notification.permission !== "granted") return;
-  try {
-    new Notification(title, {
-      body: body,
-      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>🏥</text></svg>",
-      badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>🔔</text></svg>",
-      vibrate: [200, 100, 200],
-      tag: "prima-queue"
+  // Use SW to show notification — works in background
+  if(window._swReg && _notifGranted){
+    window._swReg.showNotification(title, {
+      body    : body,
+      icon    : "prima.png",
+      badge   : "prima.png",
+      vibrate : [200, 100, 200],
+      tag     : "prima-queue",
+      renotify: true,
+      actions : [{ action:"open", title:"Buka Apl" }]
     });
-  } catch(e){}
+  } else if(_notifGranted && "Notification" in window){
+    // Fallback for browsers without SW support
+    new Notification(title, { body:body, icon:"prima.png" });
+  }
 }
 
 function playNotifSound(){
@@ -1420,6 +1454,17 @@ try {
   manifestLink.href = manifestUrl;
   document.head.appendChild(manifestLink);
 } catch(e){}
+   // ── REGISTER SERVICE WORKER ──
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js")
+    .then(function(reg){
+      console.log("[SW] Registered:", reg.scope);
+      window._swReg = reg;
+    })
+    .catch(function(err){
+      console.warn("[SW] Failed:", err);
+    });
+}
 </script>
 
 </body>
