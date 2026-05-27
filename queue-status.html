@@ -1025,7 +1025,6 @@ function submitQueueNum(){
 
   _queueNum = parseInt(val);
   _calledNotified  = false;
-  _standbyNotified = false;
    
 // ---> ADD THIS NEW ONESIGNAL LINE HERE <---
   if (window.OneSignalDeferred) {
@@ -1033,6 +1032,8 @@ function submitQueueNum(){
       OneSignal.User.addTag("queue_num", _queueNum.toString());
     });
   }
+
+     _standbyNotified = false;
   // Show loading state on button
   var btn = document.getElementById("btn-check");
   btn.disabled = true;
