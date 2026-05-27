@@ -1407,6 +1407,7 @@ function requestNotifPermission(){
     OneSignalDeferred.push(async function(OneSignal){
       await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
     });
+       }
       showToast("calling","✅ Notifikasi Dibenarkan",
         "Anda akan diberitahu walaupun apl ditutup");
 
