@@ -17,7 +17,20 @@
 <title>PRIMA — Semak Giliran</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "de60a9d2-843f-4bf7-97d0-c9ff381a222f",
+      safari_web_id: "web.onesignal.auto.1a908d8f-b1c2-454b-a8c2-6bb9d82d2555",
+      notifyButton: {
+        enable: true,
+        displayPredicate: function() { return OneSignal.Notifications.permission !== 'granted'; }
+      },
+    });
+  });
+</script>
 <style>
 /* ══════════════════════════════════════════
    CSS VARIABLES
@@ -1505,21 +1518,6 @@ try {
   manifestLink.href = manifestUrl;
   document.head.appendChild(manifestLink);
 } catch(e){}
-   // ── REGISTER SERVICE WORKER ──
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "de60a9d2-843f-4bf7-97d0-c9ff381a222f",
-      safari_web_id: "web.onesignal.auto.1a908d8f-b1c2-454b-a8c2-6bb9d82d2555",
-      notifyButton: {
-        enable: true,
-         displayPredicate: function() { return OneSignal.Notifications.permission !
-      },
-    });
-  });
-</script>
 </script>
 
 </body>
