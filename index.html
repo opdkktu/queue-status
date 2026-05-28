@@ -1,7 +1,1547 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
-  <meta http-equiv="refresh" content="0; url=queue-status/queue-status.html">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050D1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PRIMA Queue">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Semak status giliran anda di Klinik Kesihatan Ayer Hitam">
+<link rel="manifest" href="manifest.json">
+
+<!-- PWA Icons (inline for GitHub hosting) -->
+<link rel="apple-touch-icon" href="data:prima.png">
+
+<title>PRIMA — Semak Giliran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "de60a9d2-843f-4bf7-97d0-c9ff381a222f",
+      safari_web_id: "web.onesignal.auto.1a908d8f-b1c2-454b-a8c2-6bb9d82d2555",
+      serviceWorkerPath: "/queue-status/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/queue-status/" },
+      notifyButton: {
+        enable: true,
+        displayPredicate: function() { return OneSignal.Notifications.permission !== 'granted'; }
+      },
+    });
+  });
+</script>
+<style>
+/* ══════════════════════════════════════════
+   CSS VARIABLES
+══════════════════════════════════════════ */
+:root {
+  --bg:       #050D1A;
+  --bg1:      #0A1628;
+  --bg2:      #0F2040;
+  --glass:    rgba(255,255,255,.04);
+  --glass2:   rgba(255,255,255,.08);
+  --border:   rgba(255,255,255,.08);
+  --border2:  rgba(255,255,255,.14);
+  --accent:   #00C896;
+  --accent2:  #00A8FF;
+  --amber:    #F59E0B;
+  --red:      #EF4444;
+  --purple:   #8B5CF6;
+  --text1:    #F0F6FF;
+  --text2:    rgba(240,246,255,.6);
+  --text3:    rgba(240,246,255,.3);
+  --mono:     "JetBrains Mono", monospace;
+  --sans:     "Sora", sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+/* ══════════════════════════════════════════
+   RESET + BASE
+══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; -webkit-tap-highlight-color: transparent; }
+body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text1);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+
+/* ══════════════════════════════════════════
+   ANIMATED BACKGROUND
+══════════════════════════════════════════ */
+.bg-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.bg-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px); opacity: .18;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.bg-orb:nth-child(1) {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, #00C896, transparent);
+  top: -200px; left: -200px;
+  animation-delay: 0s;
+}
+.bg-orb:nth-child(2) {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #00A8FF, transparent);
+  bottom: -150px; right: -150px;
+  animation-delay: -4s;
+}
+.bg-orb:nth-child(3) {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, #8B5CF6, transparent);
+  top: 40%; left: 60%;
+  animation-delay: -8s; opacity: .1;
+}
+@keyframes orbFloat {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(30px,-40px) scale(1.05); }
+  66%     { transform: translate(-20px,20px) scale(.95); }
+}
+
+/* Grid overlay */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,200,150,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,150,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+}
+
+/* ══════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 1;
+  min-height: 100dvh;
+  display: flex; flex-direction: column;
+}
+
+/* ══════════════════════════════════════════
+   LOADING OVERLAY
+══════════════════════════════════════════ */
+#loading-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 24px;
+  transition: opacity .5s ease;
+}
+#loading-overlay.hide {
+  opacity: 0; pointer-events: none;
+}
+.loader-ring {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 3px solid rgba(0,200,150,.15);
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-logo {
+  font-size: 13px; font-weight: 700;
+  letter-spacing: .3em; color: var(--text3);
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+.app-header {
+  padding: 20px 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #0A2A1E, #0F4030);
+  border: 1px solid rgba(0,200,150,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.brand-name {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .2em; color: var(--accent);
+  text-transform: uppercase;
+}
+.brand-sub {
+  font-size: 9px; color: var(--text3);
+  letter-spacing: .1em; margin-top: 1px;
+}
+.header-time {
+  font-family: var(--mono);
+  font-size: 13px; font-weight: 500;
+  color: var(--text3); letter-spacing: .06em;
+}
+
+/* ══════════════════════════════════════════
+   SCREENS
+══════════════════════════════════════════ */
+.screen {
+  display: none; flex: 1;
+  flex-direction: column;
+  padding: 0 20px 40px;
+  animation: screenIn .4s cubic-bezier(.34,1.2,.64,1) both;
+}
+.screen.active { display: flex; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════
+   INPUT SCREEN
+══════════════════════════════════════════ */
+#screen-input {
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding-top: 20px;
+}
+
+.input-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.input-hero-icon {
+  font-size: 56px; line-height: 1;
+  margin-bottom: 20px;
+  animation: iconBob 3s ease-in-out infinite;
+}
+@keyframes iconBob {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-6px); }
+}
+.input-hero h1 {
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -.02em; line-height: 1.2;
+  margin-bottom: 10px;
+}
+.input-hero h1 span { color: var(--accent); }
+.input-hero p {
+  font-size: 13px; color: var(--text2);
+  line-height: 1.6; max-width: 280px; margin: 0 auto;
+}
+
+/* Number input box */
+.input-card {
+  width: 100%; max-width: 360px;
+  background: var(--glass);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  margin-bottom: 16px;
+}
+.input-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .2em; color: var(--text3);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.num-field-wrap {
+  position: relative; margin-bottom: 20px;
+}
+.num-field {
+  width: 100%;
+  background: rgba(0,200,150,.05);
+  border: 2px solid rgba(0,200,150,.2);
+  border-radius: 12px;
+  padding: 18px 20px;
+  font-family: var(--mono);
+  font-size: 32px; font-weight: 700;
+  color: var(--text1);
+  text-align: center;
+  letter-spacing: .2em;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  caret-color: var(--accent);
+}
+.num-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0,200,150,.12);
+}
+.num-field::placeholder {
+  color: var(--text3); font-size: 18px;
+  letter-spacing: .1em;
+}
+.num-field-hint {
+  font-size: 11px; color: var(--text3);
+  text-align: center; margin-top: 8px;
+}
+
+/* Submit button */
+.btn-submit {
+  width: 100%;
+  padding: 17px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #008F6A, #00C896);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 15px; font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.btn-submit::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+  opacity: 0; transition: opacity .2s;
+}
+.btn-submit:hover::before { opacity: 1; }
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,200,150,.4); }
+.btn-submit:active { transform: translateY(0); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-submit-icon { font-size: 18px; }
+
+/* Error message */
+.input-error {
+  font-size: 12px; color: var(--red);
+  text-align: center; min-height: 18px;
+  margin-top: 4px;
+  animation: errShake .3s ease;
+}
+@keyframes errShake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-6px); }
+  75%     { transform: translateX(6px); }
+}
+
+/* PWA install hint */
+.install-hint {
+  width: 100%; max-width: 360px;
+  background: rgba(0,168,255,.06);
+  border: 1px solid rgba(0,168,255,.18);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: var(--text2);
+  line-height: 1.5;
+}
+.install-hint-icon { font-size: 22px; flex-shrink: 0; }
+.install-hint strong { color: var(--accent2); }
+.install-hint-close {
+  margin-left: auto; background: none; border: none;
+  color: var(--text3); font-size: 16px; cursor: pointer;
+  flex-shrink: 0; padding: 0 4px;
+}
+
+/* ══════════════════════════════════════════
+   STATUS SCREEN
+══════════════════════════════════════════ */
+#screen-status {
+  gap: 0;
+  padding-top: 16px;
+}
+
+/* Patient badge */
+.patient-badge {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+.patient-num {
+  font-family: var(--mono);
+  font-size: 28px; font-weight: 700;
+  color: var(--accent); line-height: 1;
+}
+.patient-info { flex: 1; }
+.patient-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .18em; color: var(--text3);
+  text-transform: uppercase; margin-bottom: 2px;
+}
+.patient-series {
+  font-size: 12px; color: var(--text2);
+}
+.btn-reset {
+  background: none; border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text3);
+  font-size: 11px; padding: 6px 12px; cursor: pointer;
+  font-family: var(--sans);
+  transition: all .18s;
+}
+.btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── CHECKPOINT TRAIN ── */
+.checkpoint-section {
+  margin-bottom: 24px;
+}
+.section-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .2em; color: var(--text3);
+  text-transform: uppercase; margin-bottom: 16px;
+}
+
+.train-track {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Vertical line connecting stations */
+.train-track::before {
+  content: "";
+  position: absolute;
+  left: 23px; top: 24px;
+  width: 2px;
+  height: calc(100% - 48px);
+  background: var(--border2);
+  z-index: 0;
+}
+
+.station {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 12px 0;
+  position: relative; z-index: 1;
+  animation: stationIn .4s cubic-bezier(.34,1.2,.64,1) both;
+}
+.station:nth-child(1) { animation-delay: .05s; }
+.station:nth-child(2) { animation-delay: .12s; }
+.station:nth-child(3) { animation-delay: .19s; }
+.station:nth-child(4) { animation-delay: .26s; }
+@keyframes stationIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Station dot */
+.station-dot {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+  position: relative; transition: all .3s;
+  border: 2px solid var(--border2);
+  background: var(--bg1);
+}
+.station.attended .station-dot {
+  background: rgba(0,200,150,.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0,200,150,.2);
+}
+.station.current .station-dot {
+  background: rgba(0,168,255,.15);
+  border-color: var(--accent2);
+  box-shadow: 0 0 20px rgba(0,168,255,.3);
+  animation: currentPulse 2s ease-in-out infinite;
+}
+.station.pending .station-dot {
+  opacity: .4;
+}
+@keyframes currentPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(0,168,255,.3); }
+  50%     { box-shadow: 0 0 36px rgba(0,168,255,.6), 0 0 60px rgba(0,168,255,.2); }
+}
+
+/* Progress line fill */
+.station-line-fill {
+  position: absolute;
+  left: 23px; top: 0;
+  width: 2px; height: 0;
+  background: linear-gradient(to bottom, var(--accent), var(--accent2));
+  z-index: 0;
+  transition: height .8s cubic-bezier(.4,0,.2,1);
+}
+
+.station-body { flex: 1; padding-top: 6px; }
+.station-name {
+  font-size: 14px; font-weight: 700;
+  color: var(--text2);
+  transition: color .3s;
+}
+.station.current .station-name { color: var(--text1); }
+.station.attended .station-name { color: var(--accent); }
+.station.pending .station-name { color: var(--text3); }
+
+.station-meta {
+  font-size: 11px; color: var(--text3);
+  margin-top: 3px; display: flex; gap: 10px; align-items: center;
+}
+.station-time {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--accent); font-weight: 500;
+}
+.station-badge {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.badge-attended {
+  background: rgba(0,200,150,.15); color: var(--accent);
+}
+.badge-current {
+  background: rgba(0,168,255,.15); color: var(--accent2);
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+@keyframes badgePulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+.badge-pending {
+  background: rgba(255,255,255,.05); color: var(--text3);
+}
+
+/* ── CURRENT NUMBER DISPLAY ── */
+.current-call-card {
+  background: linear-gradient(135deg, rgba(0,200,150,.08), rgba(0,168,255,.06));
+  border: 1px solid rgba(0,200,150,.2);
+  border-radius: 20px;
+  padding: 24px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+  position: relative; overflow: hidden;
+}
+.current-call-card::before {
+  content: "";
+  position: absolute; top: -60px; right: -60px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,200,150,.12), transparent);
+  pointer-events: none;
+}
+.call-lbl {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .2em; color: var(--text3);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.call-num-big {
+  font-family: var(--mono);
+  font-size: 64px; font-weight: 700;
+  color: var(--accent); line-height: 1;
+  letter-spacing: .06em;
+  text-shadow: 0 0 40px rgba(0,200,150,.4);
+  animation: numGlow 3s ease-in-out infinite;
+}
+@keyframes numGlow {
+  0%,100% { text-shadow: 0 0 40px rgba(0,200,150,.4); }
+  50%     { text-shadow: 0 0 60px rgba(0,200,150,.7), 0 0 100px rgba(0,200,150,.2); }
+}
+.call-num-big.flip {
+  animation: numFlip .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes numFlip {
+  0%   { transform: rotateX(-90deg) scale(.8); opacity: 0; }
+  100% { transform: rotateX(0) scale(1); opacity: 1; }
+}
+.call-stage-lbl {
+  font-size: 12px; color: var(--text2);
+  margin-top: 6px;
+}
+
+/* ── WAIT ESTIMATE CARD ── */
+.wait-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
+}
+.wait-cell {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 14px;
+  text-align: center;
+}
+.wait-cell-num {
+  font-family: var(--mono);
+  font-size: 30px; font-weight: 700;
+  line-height: 1; margin-bottom: 4px;
+}
+.wait-cell-num.green  { color: var(--accent); }
+.wait-cell-num.amber  { color: var(--amber); }
+.wait-cell-num.red    { color: var(--red); }
+.wait-cell-lbl {
+  font-size: 10px; color: var(--text3);
+  letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* ── PROGRESS BAR ── */
+.progress-section { margin-bottom: 16px; }
+.progress-lbl {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text3);
+  margin-bottom: 8px;
+}
+.progress-track {
+  height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── NOTIFICATION CARD ── */
+.notif-card {
+  background: rgba(139,92,246,.08);
+  border: 1px solid rgba(139,92,246,.25);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 16px;
+}
+.notif-icon { font-size: 24px; flex-shrink: 0; }
+.notif-body { flex: 1; }
+.notif-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text1); margin-bottom: 2px;
+}
+.notif-sub { font-size: 11px; color: var(--text3); line-height: 1.4; }
+.btn-notif {
+  background: rgba(139,92,246,.2);
+  border: 1px solid rgba(139,92,246,.4);
+  border-radius: 10px;
+  color: #C4B5FD;
+  font-size: 11px; font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: all .18s;
+  flex-shrink: 0;
+}
+.btn-notif:hover { background: rgba(139,92,246,.35); }
+.btn-notif.granted {
+  background: rgba(0,200,150,.1);
+  border-color: rgba(0,200,150,.3);
+  color: var(--accent);
+}
+
+/* ── STANDBY ALERT TOAST ── */
+.alert-toast {
+  position: fixed;
+  bottom: calc(20px + var(--safe-bot));
+  left: 16px; right: 16px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  z-index: 8888;
+  transform: translateY(120px);
+  opacity: 0;
+  transition: all .5s cubic-bezier(.34,1.3,.64,1);
+  pointer-events: none;
+}
+.alert-toast.show {
+  transform: translateY(0); opacity: 1;
+  pointer-events: auto;
+}
+.alert-toast.standby {
+  background: linear-gradient(135deg, #1C1010, #3D2A10);
+  border: 1px solid rgba(245,158,11,.45);
+}
+.alert-toast.calling {
+  background: linear-gradient(135deg, #0A2A1E, #0F4030);
+  border: 1px solid rgba(0,200,150,.5);
+  animation: callToastPulse .8s ease-in-out 6;
+}
+@keyframes callToastPulse {
+  0%,100% { border-color: rgba(0,200,150,.5); }
+  50%     { border-color: rgba(0,200,150,1); box-shadow: 0 0 40px rgba(0,200,150,.3); }
+}
+.toast-ico { font-size: 26px; flex-shrink: 0; }
+.toast-body2 { flex: 1; }
+.toast-title { font-size: 14px; font-weight: 700; color: var(--text1); }
+.toast-sub2 { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.toast-close {
+  background: none; border: none; color: var(--text3);
+  font-size: 20px; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── REFRESH INDICATOR ── */
+.refresh-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; font-size: 11px; color: var(--text3);
+  margin-top: 4px;
+}
+.refresh-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: dotBlink 2s ease-in-out infinite;
+}
+@keyframes dotBlink { 0%,100%{opacity:.4;} 50%{opacity:1;} }
+
+/* ── CALLED SCREEN ── */
+#screen-called {
+  align-items: center; justify-content: center;
+  text-align: center; gap: 24px;
+  padding-top: 20px;
+}
+.called-icon {
+  font-size: 80px; line-height: 1;
+  animation: calledBounce .6s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes calledBounce {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+.called-num {
+  font-family: var(--mono);
+  font-size: 72px; font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 60px rgba(0,200,150,.6);
+  animation: numGlow 2s ease-in-out infinite;
+}
+.called-title {
+  font-size: 24px; font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+}
+.called-sub {
+  font-size: 14px; color: var(--text2);
+  line-height: 1.6; max-width: 280px;
+}
+.btn-back {
+  padding: 14px 32px; border-radius: 12px;
+  border: 1px solid var(--border2);
+  background: var(--glass); color: var(--text2);
+  font-family: var(--sans); font-size: 13px;
+  font-weight: 600; cursor: pointer;
+  transition: all .18s; margin-top: 8px;
+}
+.btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════════
+   SERIES INDICATOR
+══════════════════════════════════════════ */
+.series-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  background: rgba(0,168,255,.1);
+  border: 1px solid rgba(0,168,255,.25);
+  font-size: 11px; font-weight: 600; color: var(--accent2);
+  letter-spacing: .06em;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media (min-width: 480px) {
+  #screen-input { padding: 40px 32px; }
+  .input-card { padding: 36px 32px; }
+}
+</style>
 </head>
-<body></body>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div class="loader-logo">PRIMA · Sistem Giliran</div>
+</div>
+
+<!-- ANIMATED BACKGROUND -->
+<div class="bg-canvas">
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+</div>
+<div class="bg-grid"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">🏥</div>
+      <div>
+        <div class="brand-name">Patient & Routine Integrated Management App (PRIMA)</div>
+        <div class="brand-sub">Klinik Kesihatan Ayer Hitam, PKD Kubang Pasu</div>
+      </div>
+    </div>
+    <div class="header-time" id="hdr-clock">--:--</div>
+  </header>
+
+  <!-- ══ SCREEN: INPUT ══ -->
+  <section class="screen active" id="screen-input">
+    <div class="input-hero">
+      <img src="prima.png" alt="PRIMA"
+        style="width:90px;height:90px;object-fit:contain;
+        border-radius:16px;margin-bottom:20px;
+        animation:iconBob 3s ease-in-out infinite;">
+      <h1>Semak <span>Giliran</span> Anda</h1>
+      <p>Masukkan nombor giliran untuk melihat status dan anggaran masa menunggu</p>
+    </div>
+
+    <div class="input-card">
+      <div class="input-label">Nombor Giliran</div>
+      <div class="num-field-wrap">
+        <input
+          type="tel"
+          id="queue-input"
+          class="num-field"
+          placeholder="contoh: 2006"
+          maxlength="4"
+          inputmode="numeric"
+          autocomplete="off"
+          autofocus>
+      </div>
+      <div class="num-field-hint">Masukkan 4 digit nombor giliran anda</div>
+      <div class="input-error" id="input-error"></div>
+    </div>
+
+    <div style="width:100%;max-width:360px;">
+      <button class="btn-submit" id="btn-check" onclick="submitQueueNum()">
+        <span class="btn-submit-icon">🔍</span>
+        <span>Semak Status</span>
+      </button>
+    </div>
+
+    <div class="install-hint" id="install-hint" style="margin-top:20px;display:none;">
+  <span class="install-hint-icon">📱</span>
+  <div>
+    <strong>Tambah ke Skrin Utama</strong><br>
+    Selepas benarkan notifikasi, ikon PRIMA akan muncul.<br>
+    <span id="install-ios-hint">iOS: ketik <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
+  </div>
+  <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
+</div>
+  </section>
+
+  <!-- ══ SCREEN: STATUS ══ -->
+  <section class="screen" id="screen-status">
+
+    <!-- Patient badge -->
+    <div class="patient-badge" id="patient-badge">
+      <div class="patient-num" id="badge-num">—</div>
+      <div class="patient-info">
+        <div class="patient-label">Nombor Giliran Anda</div>
+        <div class="patient-series" id="badge-series">—</div>
+         <div id="badge-name" style="font-size:13px;font-weight:600;color:var(--accent);
+       margin-top:3px;display:none;"></div>
+      </div>
+      <button class="btn-reset" onclick="resetToInput()">← Tukar</button>
+    </div>
+
+    <!-- Checkpoint train -->
+    <div class="checkpoint-section">
+      <div class="section-title">Perjalanan Rawatan</div>
+      <div class="train-track" id="train-track">
+        <!-- Stations injected by JS -->
+      </div>
+    </div>
+
+    <!-- Current calling number -->
+    <div class="current-call-card">
+      <div class="call-lbl" id="call-stage-label">Nombor Semasa Dipanggil</div>
+      <div class="call-num-big" id="call-num-big">—</div>
+      <div class="call-stage-lbl" id="call-stage-name">—</div>
+    </div>
+
+    <!-- Wait estimate -->
+    <div class="wait-grid">
+      <div class="wait-cell">
+        <div class="wait-cell-num" id="cell-ahead">—</div>
+        <div class="wait-cell-lbl">Nombor Lagi</div>
+      </div>
+      <div class="wait-cell">
+        <div class="wait-cell-num" id="cell-wait">—</div>
+        <div class="wait-cell-lbl">Angg. Minit</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-section">
+      <div class="progress-lbl">
+        <span>Kemajuan siri anda</span>
+        <span id="progress-pct">—</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Notification request -->
+    <div class="notif-card" id="notif-card">
+      <div class="notif-icon">🔔</div>
+      <div class="notif-body">
+        <div class="notif-title">Notifikasi Giliran</div>
+        <div class="notif-sub">Benarkan notifikasi supaya anda diberi amaran apabila giliran menghampiri</div>
+      </div>
+      <button class="btn-notif" id="btn-notif" onclick="requestNotifPermission()">Benarkan</button>
+    </div>
+
+    <!-- Refresh indicator -->
+    <div class="refresh-row">
+      <div class="refresh-dot"></div>
+      <span>Dikemaskini setiap 30s · <span id="last-refresh">--:--:--</span></span>
+    </div>
+
+  </section>
+
+  <!-- ══ SCREEN: CALLED ══ -->
+  <section class="screen" id="screen-called">
+    <div class="called-icon">🎉</div>
+    <div class="called-num" id="called-num-big">—</div>
+    <div>
+      <div class="called-title">Nombor Anda Dipanggil!</div>
+      <div class="called-sub" id="called-sub">Sila pergi ke kaunter yang ditetapkan sekarang</div>
+    </div>
+    <button class="btn-back" onclick="resetToInput()">← Semak Nombor Lain</button>
+  </section>
+
+</div><!-- end .app -->
+
+<!-- ALERT TOAST -->
+<div class="alert-toast" id="alert-toast">
+  <div class="toast-ico" id="toast-ico">⚠️</div>
+  <div class="toast-body2">
+    <div class="toast-title" id="toast-title">—</div>
+    <div class="toast-sub2" id="toast-sub2">—</div>
+  </div>
+  <button class="toast-close" onclick="hideToast()">✕</button>
+</div>
+
+<!-- NOTIFICATION SOUND -->
+<audio id="aud-notify" preload="auto">
+  <source src="https://raw.githubusercontent.com/opdkktu/trial1/main/bell.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  ★ CONFIG — UPDATE THESE
+// ══════════════════════════════════════════════════════
+var GAS_URL = "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec";
+// e.g. "https://script.google.com/macros/s/AKfy.../exec"
+
+var WAIT_PER_NUM_MIN = 15; // estimated minutes per queue number
+var POLL_INTERVAL_MS = 10000; // 10 seconds
+
+var STAGE_LABELS = {
+  KAUNTER : { name:"Kaunter Pendaftaran", icon:"📋", short:"Pendaftaran" },
+  NURSE   : { name:"Stesen Jururawat",    icon:"🩺", short:"Jururawat"  },
+  DOCTOR  : { name:"Bilik Doktor",        icon:"👨‍⚕️", short:"Doktor"     },
+  TCA     : { name:"Kaunter TCA",         icon:"📅", short:"TCA"        }
+};
+var STAGE_ORDER = ["KAUNTER","NURSE","DOCTOR","TCA"];
+   
+// ── CAPTURE ADD TO HOME SCREEN PROMPT ──
+window._deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  window._deferredPrompt = e;
+  // Show install hint
+  document.getElementById("install-hint").style.display = "flex";
+});
+window.addEventListener("appinstalled", function(){
+  window._deferredPrompt = null;
+  document.getElementById("install-hint").style.display = "none";
+  showToast("calling","✅ Apl Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
+});
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+var _queueNum      = null;
+var _pollTimer     = null;
+var _notifGranted  = false;
+var _lastStatus    = null;
+var _toastTimer    = null;
+var _calledNotified  = false;
+var _standbyNotified = false;
+
+// ══════════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════════
+function pad(n){ return n<10?"0"+n:""+n; }
+function tickClock(){
+  var d = new Date();
+  document.getElementById("hdr-clock").textContent =
+    pad(d.getHours())+":"+pad(d.getMinutes());
+}
+tickClock(); setInterval(tickClock, 1000);
+
+// ══════════════════════════════════════════════════════
+//  LOADING
+// ══════════════════════════════════════════════════════
+window.addEventListener("load", function(){
+  setTimeout(function(){
+    var ol = document.getElementById("loading-overlay");
+    ol.classList.add("hide");
+    setTimeout(function(){ ol.style.display="none"; }, 500);
+  }, 800);
+  checkInstallHint();
+});
+
+// ══════════════════════════════════════════════════════
+//  PWA — ADD TO HOME SCREEN
+// ══════════════════════════════════════════════════════
+function checkInstallHint(){
+  var isStandalone = window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone;
+  if(isStandalone){
+    document.getElementById("install-hint").style.display = "none";
+    return;
+  }
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+  var hint  = document.getElementById("install-hint");
+  var iosEl = document.getElementById("install-ios-hint");
+
+  if(isIOS){
+    // Always show on iOS — must add to home screen first for notifications
+    hint.style.display = "flex";
+    if(iosEl) iosEl.style.display = "inline";
+  }
+  // Android — shown by beforeinstallprompt event
+}
+
+// ══════════════════════════════════════════════════════
+//  ENTER KEY SUBMIT
+// ══════════════════════════════════════════════════════
+document.getElementById("queue-input").addEventListener("keydown", function(e){
+  if(e.key === "Enter") submitQueueNum();
+});
+document.getElementById("queue-input").addEventListener("input", function(){
+  document.getElementById("input-error").textContent = "";
+});
+
+// ══════════════════════════════════════════════════════
+//  SUBMIT QUEUE NUMBER
+// ══════════════════════════════════════════════════════
+function submitQueueNum(){
+   // Ask notification permission on first user action via OneSignal
+   if (window.OneSignalDeferred) {
+     OneSignalDeferred.push(async function(OneSignal) {
+       await OneSignal.Notifications.requestPermission();
+     });
+   }
+  var val = document.getElementById("queue-input").value.trim().replace(/\D/g,"");
+  var errEl = document.getElementById("input-error");
+
+  if(!val || val.length < 1){
+    errEl.textContent = "Sila masukkan nombor giliran anda";
+    errEl.style.animation = "none"; void errEl.offsetWidth;
+    errEl.style.animation = "errShake .3s ease";
+    return;
+  }
+  if(val.length > 4){
+    errEl.textContent = "Nombor giliran maksimum 4 digit";
+    return;
+  }
+
+  _queueNum = parseInt(val);
+  _calledNotified  = false;
+   
+// ---> ADD THIS NEW ONESIGNAL LINE HERE <---
+  if (window.OneSignalDeferred) {
+    OneSignalDeferred.push(async function(OneSignal) {
+      try {
+      // Wait for user to be ready
+      await new Promise(r => setTimeout(r, 1000));
+      var numStr = parseInt(_queueNum).toString();
+      await OneSignal.User.addTag("queue_num", numStr);
+      console.log("[PRIMA] Tag set OK: queue_num =", numStr);
+    } catch(e) {
+      console.error("[PRIMA] Tag failed:", e);
+    }
+    });
+  }
+
+     _standbyNotified = false;
+  // Show loading state on button
+  var btn = document.getElementById("btn-check");
+  btn.disabled = true;
+  btn.innerHTML = "<div class='loader-ring' style='width:22px;height:22px;border-width:2px;'></div><span>Menyemak...</span>";
+
+  fetchStatus(_queueNum, function(data){
+    btn.disabled = false;
+    btn.innerHTML = "<span class='btn-submit-icon'>🔍</span><span>Semak Status</span>";
+
+    if(!data || data.status !== "success"){
+      errEl.textContent = data ? (data.message||"Nombor tidak dijumpai hari ini") : "Ralat sambungan. Cuba semula.";
+      errEl.style.animation = "none"; void errEl.offsetWidth;
+      errEl.style.animation = "errShake .3s ease";
+      return;
+    }
+// Add this inside the fetchStatus callback, after showStatusScreen(data):
+if ("Notification" in window && Notification.permission === "default") {
+  // Small delay so screen has switched first
+  setTimeout(function() {
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.Notifications.requestPermission();
+    });
+  }, 1500);
+}
+    showStatusScreen(data);
+    startPolling();
+  });
+}
+function _askNotifPermission(){
+  if(!("Notification" in window)) return;
+  if(Notification.permission !== "default") return; // already granted or denied
+
+  Notification.requestPermission().then(function(perm){
+    _notifGranted = perm === "granted";
+    updateNotifBtn();
+
+    if(_notifGranted){
+      // Register SW immediately
+      if("serviceWorker" in navigator){
+        navigator.serviceWorker.register("sw.js")
+          .then(function(reg){
+            window._swReg = reg;
+            console.log("[SW] Registered");
+          });
+      }
+      // Trigger Add to Home Screen on Android
+      if(window._deferredPrompt){
+        window._deferredPrompt.prompt();
+        window._deferredPrompt.userChoice.then(function(r){
+          window._deferredPrompt = null;
+        });
+      }
+    }
+  });
+}
+// ══════════════════════════════════════════════════════
+//  FETCH STATUS FROM GAS
+// ══════════════════════════════════════════════════════
+function fetchStatus(num, cb){
+  var url = GAS_URL + "?action=status&num=" + encodeURIComponent(num);
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(data){ cb(data); })
+    .catch(function(){ cb(null); });
+}
+
+// ══════════════════════════════════════════════════════
+//  SHOW STATUS SCREEN
+// ══════════════════════════════════════════════════════
+function showStatusScreen(data){
+  _lastStatus = data;
+   // Reset notification flags when patient advances to a new stage
+   if(_lastStatus && _lastStatus.currentStage !== data.currentStage){
+     _calledNotified  = false;
+     _standbyNotified = false;
+   }
+  // Switch screen
+  document.getElementById("screen-input").classList.remove("active");
+  document.getElementById("screen-status").classList.add("active");
+  document.getElementById("screen-called").classList.remove("active");
+
+  // Badge
+  var numPad = String(data.inputNum).padStart(4,"0");
+  document.getElementById("badge-num").textContent = numPad;
+  document.getElementById("badge-series").textContent =
+    "Siri " + data.series + "xxx · " + getStageLabel(data.currentStage);
+   var nameEl = document.getElementById("badge-name");
+   var notYet = data.notCalledYet;
+   if(nameEl){
+     nameEl.textContent = data.name ? data.name : "";
+     nameEl.style.display = data.name ? "block" : "none";
+   }else if(notYet){
+    nameEl.textContent = "Menunggu panggilan pendaftaran";
+    nameEl.style.color = "var(--amber)";
+    nameEl.style.display = "block";
+  } else {
+    nameEl.style.display = "none";
+  }
+  // Checkpoint train
+  renderTrain(data);
+
+  // Current calling number
+  var prevNum = document.getElementById("call-num-big").textContent;
+  var newNum  = data.currentCallingNum ? String(data.currentCallingNum).padStart(4,"0") : "——";
+  document.getElementById("call-num-big").textContent = newNum;
+  if(prevNum !== newNum && prevNum !== "—"){
+    var el = document.getElementById("call-num-big");
+    el.classList.remove("flip"); void el.offsetWidth; el.classList.add("flip");
+  }
+ document.getElementById("call-stage-label").textContent = data.notCalledYet
+  ? "Nombor Semasa Dipanggil — Kaunter Pendaftaran"
+  : "Nombor Semasa Dipanggil — " + getStageLabel(data.currentStage);
+  document.getElementById("call-stage-name").textContent =
+    (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
+
+  // Wait cells
+  var ahead = data.numbersAhead;
+  var estMin = ahead * WAIT_PER_NUM_MIN;
+  var aheadEl = document.getElementById("cell-ahead");
+  var waitEl  = document.getElementById("cell-wait");
+  aheadEl.textContent = ahead;
+  waitEl.textContent  = estMin;
+  aheadEl.className = "wait-cell-num " + (ahead <= 2 ? "red" : ahead <= 5 ? "amber" : "green");
+  waitEl.className  = "wait-cell-num " + (estMin <= 30 ? "red" : estMin <= 75 ? "amber" : "green");
+
+  // Progress bar
+  renderProgress(data);
+
+  // Notification state
+  updateNotifBtn();
+
+  // Timestamp
+  var d = new Date();
+  document.getElementById("last-refresh").textContent =
+    pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+
+  // Check alerts
+  checkAlerts(data);
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER CHECKPOINT TRAIN
+// ══════════════════════════════════════════════════════
+function renderTrain(data){
+  var track = document.getElementById("train-track");
+  var checkpointMap = {};
+  (data.checkpoints||[]).forEach(function(c){ checkpointMap[c.stage] = c; });
+
+  track.innerHTML = STAGE_ORDER.map(function(stage, idx){
+    var cp   = checkpointMap[stage] || { status:"PENDING" };
+    var lbl  = STAGE_LABELS[stage]  || { name:stage, icon:"📍" };
+
+    var isDone   = cp.status === "ATTENDED";
+    var isCalled = cp.status === "WAITING" || cp.status === "CALLED";
+    var isCur    = stage === data.currentStage && !isDone;
+    var isPend   = !isDone && !isCur;
+
+    var cls = isDone ? "attended" : isCur ? "current" : "pending";
+
+    var badge;
+    if(isDone){
+      badge = "<span class='station-badge badge-attended'>✓ Selesai</span>";
+    } else if(isCur && isCalled){
+      var roomLabel = "";
+  if(stage === "DOCTOR" && cp.calledBy){
+    // calledBy = "DOKTOR_1", "DOKTOR_2" etc — extract room number
+    var roomNum = cp.calledBy.replace(/\D/g,"");
+    roomLabel = roomNum ? " — Bilik " + roomNum : "";
+  } else if(stage === "NURSE" && cp.calledBy){
+    roomLabel = " — Kaunter Jururawat";
+  }
+  badge = "<span class='station-badge badge-current'>🔔 Dipanggil" + roomLabel + "</span>";
+    } else if(isCur){
+      badge = "<span class='station-badge badge-current'>⏳ Sedang Menunggu</span>";
+    } else {
+      badge = "<span class='station-badge badge-pending'>Belum Sampai</span>";
+    }
+
+    var roomInfo = "";
+if(stage === "DOCTOR" && cp.calledBy){
+  var rn = cp.calledBy.replace(/\D/g,"");
+  if(rn) roomInfo = " · <span style='color:var(--accent2);font-weight:600;'>Bilik " + rn + "</span>";
+}
+var timeHtml = cp.calledAt
+  ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
+  : "";
+
+    return "<div class='station "+cls+"'>" +
+      "<div class='station-dot'>" + lbl.icon + "</div>" +
+      "<div class='station-body'>" +
+        "<div class='station-name'>" + lbl.name + "</div>" +
+        "<div class='station-meta'>" + timeHtml + badge + "</div>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+
+  // Animate progress line after render
+  setTimeout(function(){
+    var dots = track.querySelectorAll(".station-dot");
+    // We'll draw the line via a pseudo element approach — already handled in CSS
+  }, 100);
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER PROGRESS BAR
+// ══════════════════════════════════════════════════════
+function renderProgress(data){
+  // Estimate total series numbers (rough: seriesSize ~50 per day)
+  // Use currentCallingNum vs inputNum for relative progress
+  var cur  = data.currentCallingNum || 0;
+  var mine = data.inputNum;
+  var pct  = cur >= mine ? 100 : Math.max(0, Math.round((cur / mine) * 100));
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-pct").textContent = pct + "%";
+}
+
+function getStageLabel(stage){
+  return (STAGE_LABELS[stage]||{}).short || stage;
+}
+
+// ══════════════════════════════════════════════════════
+//  CHECK ALERTS — standby + called
+// ══════════════════════════════════════════════════════
+function checkAlerts(data){
+  if(!data || data.status !== "success") return;
+
+  var myNum    = data.inputNum;
+  var myStage  = data.currentStage;
+  var curCalling = data.currentCallingNum;
+  var ahead    = data.numbersAhead;
+
+  // ── CALLED — my exact number is now being called at my current stage ──
+  // Triggers when: my entry exists at currentStage with status WAITING/CALLED
+  var myCheckpoint = (data.checkpoints||[]).filter(function(c){
+    return c.stage === myStage;
+  })[0];
+
+  var iAmBeingCalled = myCheckpoint
+    && (myCheckpoint.status === "WAITING" || myCheckpoint.status === "CALLED")
+    && curCalling === myNum;
+
+  if(iAmBeingCalled && !_calledNotified){
+    _calledNotified = true;
+    showCalledScreen(data);
+    sendNotification(
+      "🔔 Nombor Anda Dipanggil!",
+      "No. " + String(myNum).padStart(4,"0") +
+      " — sila ke " + getStageLabel(myStage) + " sekarang"
+    );
+    playNotifSound();
+    return; // don't also show standby
+  }
+
+  // ── STANDBY — exactly 1 number before mine at my current stage ──
+  var isStandby = ahead === 1 && !iAmBeingCalled;
+
+  if(isStandby && !_standbyNotified){
+    _standbyNotified = true;
+    showToast("standby",
+      "⏳ Bersedia — 1 Nombor Lagi!",
+      "No. anda hampir dipanggil di " + getStageLabel(myStage)
+    );
+    sendNotification(
+      "⏳ Bersedia Sekarang!",
+      "Hanya 1 nombor lagi sebelum giliran anda di " +
+      getStageLabel(myStage)
+    );
+    playNotifSound();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  CALLED SCREEN
+// ══════════════════════════════════════════════════════
+function showCalledScreen(data){
+  document.getElementById("screen-status").classList.remove("active");
+  document.getElementById("screen-called").classList.add("active");
+  var numPad = String(data.inputNum).padStart(4,"0");
+  document.getElementById("called-num-big").textContent = numPad;
+  var dest = (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
+// Add room if doctor
+var doctorCp = (data.checkpoints||[]).filter(function(c){ return c.stage==="DOCTOR"; })[0];
+if(data.currentStage === "DOCTOR" && doctorCp && doctorCp.calledBy){
+  var rn = doctorCp.calledBy.replace(/\D/g,"");
+  if(rn) dest = "Bilik Doktor " + rn;
+}
+document.getElementById("called-sub").textContent =
+  (data.name ? data.name + " — " : "") + "Sila pergi ke " + dest + " sekarang";
+
+  showToast("calling",
+    "🔔 Nombor " + numPad + " Dipanggil!",
+    "Sila ke " + getStageLabel(data.currentStage) + " segera"
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  POLLING
+// ══════════════════════════════════════════════════════
+function startPolling(){
+  clearInterval(_pollTimer);
+  _pollTimer = setInterval(function(){
+    if(!_queueNum) return;
+    fetchStatus(_queueNum, function(data){
+      if(!data || data.status !== "success") return;
+      showStatusScreen(data);
+    });
+  }, POLL_INTERVAL_MS);
+}
+
+function stopPolling(){
+  clearInterval(_pollTimer);
+  _pollTimer = null;
+}
+
+// ══════════════════════════════════════════════════════
+//  RESET
+// ══════════════════════════════════════════════════════
+function resetToInput(){
+  stopPolling();
+  _queueNum = null;
+  _calledNotified  = false;
+  _standbyNotified = false;
+  document.getElementById("queue-input").value = "";
+  document.getElementById("input-error").textContent = "";
+  document.getElementById("screen-status").classList.remove("active");
+  document.getElementById("screen-called").classList.remove("active");
+  document.getElementById("screen-input").classList.add("active");
+  setTimeout(function(){
+    document.getElementById("queue-input").focus();
+  }, 300);
+}
+
+// ══════════════════════════════════════════════════════
+//  NOTIFICATIONS
+// ══════════════════════════════════════════════════════
+function requestNotifPermission(){
+  if(!("Notification" in window)){
+    showToast("standby","Tidak Disokong","Pelayar ini tidak menyokong notifikasi");
+    return;
+  }
+
+  Notification.requestPermission().then(function(perm){
+    _notifGranted = perm === "granted";
+    updateNotifBtn();
+
+    if(_notifGranted){
+       if(window.OneSignalDeferred){
+    OneSignalDeferred.push(async function(OneSignal){
+      await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
+    });
+       }
+      showToast("calling","✅ Notifikasi Dibenarkan",
+        "Anda akan diberitahu walaupun apl ditutup");
+
+      // Trigger Add to Home Screen prompt if available
+      if(window._deferredPrompt){
+        window._deferredPrompt.prompt();
+        window._deferredPrompt.userChoice.then(function(result){
+          console.log("[PWA] Install choice:", result.outcome);
+          window._deferredPrompt = null;
+          document.getElementById("install-hint").style.display = "none";
+        });
+      }
+    } else {
+      showToast("standby","Notifikasi Ditolak",
+        "Benarkan notifikasi dalam tetapan pelayar untuk menerima amaran");
+    }
+  });
+}
+
+function updateNotifBtn(){
+  var btn = document.getElementById("btn-notif");
+  var card = document.getElementById("notif-card");
+  if(!("Notification" in window)){
+    card.style.display = "none"; return;
+  }
+  if(Notification.permission === "granted"){
+    _notifGranted = true;
+    btn.textContent = "✓ Aktif";
+    btn.classList.add("granted");
+    btn.disabled = true;
+  } else {
+    btn.textContent = "Benarkan";
+    btn.classList.remove("granted");
+    btn.disabled = false;
+  }
+}
+
+function sendNotification(title, body){
+  // Use SW to show notification — works in background
+  if(window._swReg && _notifGranted){
+    window._swReg.showNotification(title, {
+      body    : body,
+      icon    : "prima.png",
+      badge   : "prima.png",
+      vibrate : [200, 100, 200],
+      tag     : "prima-queue",
+      renotify: true,
+      actions : [{ action:"open", title:"Buka Apl" }]
+    });
+  } else if(_notifGranted && "Notification" in window){
+    // Fallback for browsers without SW support
+    new Notification(title, { body:body, icon:"prima.png" });
+  }
+}
+
+function playNotifSound(){
+  try {
+    var aud = document.getElementById("aud-notify");
+    aud.currentTime = 0;
+    aud.play().catch(function(){});
+  } catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+function showToast(type, title, sub){
+  var toast = document.getElementById("alert-toast");
+  var ico   = document.getElementById("toast-ico");
+  var ttl   = document.getElementById("toast-title");
+  var stxt  = document.getElementById("toast-sub2");
+
+  ico.textContent  = type === "calling" ? "🔔" : "⏳";
+  ttl.textContent  = title;
+  stxt.textContent = sub;
+
+  toast.className = "alert-toast " + type + " show";
+
+  clearTimeout(_toastTimer);
+  if(type !== "calling"){ // calling toast stays until dismissed
+    _toastTimer = setTimeout(hideToast, 8000);
+  }
+}
+
+function hideToast(){
+  document.getElementById("alert-toast").classList.remove("show");
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT — check notification permission on load
+// ══════════════════════════════════════════════════════
+if("Notification" in window && Notification.permission === "granted"){
+  _notifGranted = true;
+}
+</script>
+
+<!-- PWA MANIFEST (inline script generates it) -->
+<script>
+// Generate and inject manifest dynamically
+var manifestData = {
+  "name": "PRIMA — Semak Giliran",
+  "short_name": "PRIMA Queue",
+  "description": "Semak status giliran di Klinik Kesihatan Ayer Hitam",
+  "start_url": ".index.html",
+  "display": "standalone",
+  "background_color": "#050D1A",
+  "theme_color": "#050D1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "prima.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "prima.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["health", "medical"],
+  "lang": "ms"
+};
+
+// Inject as blob URL for manifest link
+try {
+  var manifestBlob = new Blob([JSON.stringify(manifestData)], {type:"application/json"});
+  var manifestUrl  = URL.createObjectURL(manifestBlob);
+  var manifestLink = document.createElement("link");
+  manifestLink.rel  = "manifest";
+  manifestLink.href = manifestUrl;
+  document.head.appendChild(manifestLink);
+} catch(e){}
+</script>
+
+</body>
 </html>
