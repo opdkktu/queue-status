@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="PRIMA Queue">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Semak status giliran anda di Klinik Kesihatan Ayer Hitam">
-<link rel="manifest" href="manifest.json">
-
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#050D1A">
 <!-- PWA Icons (inline for GitHub hosting) -->
 <link rel="apple-touch-icon" href="data:prima.png">
 
@@ -18,16 +18,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "de60a9d2-843f-4bf7-97d0-c9ff381a222f",
-      serviceWorkerPath: "/queue-status/OneSignalSDKWorker.js",
-      serviceWorkerParam: { scope: "/queue-status/" },
+      safari_web_id: "web.onesignal.auto.1a908d8f-b1c2-454b-a8c2-6bb9d82d2555",
       notifyButton: {
         enable: true,
-        displayPredicate: function() { return OneSignal.Notifications.permission !== 'granted'; }
       },
     });
   });
@@ -1501,46 +1500,6 @@ function hideToast(){
 if("Notification" in window && Notification.permission === "granted"){
   _notifGranted = true;
 }
-</script>
-
-<!-- PWA MANIFEST (inline script generates it) -->
-<script>
-// Generate and inject manifest dynamically
-var manifestData = {
-  "name": "PRIMA — Semak Giliran",
-  "short_name": "PRIMA Queue",
-  "description": "Semak status giliran di Klinik Kesihatan Ayer Hitam",
-  "start_url": "/queue-status/",
-  "scope": "/queue-status/" ,
-  "display": "standalone",
-  "background_color": "#050D1A",
-  "theme_color": "#050D1A",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "prima.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "prima.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "categories": ["health", "medical"],
-  "lang": "ms"
-};
-
-// Inject as blob URL for manifest link
-try {
-  var manifestBlob = new Blob([JSON.stringify(manifestData)], {type:"application/json"});
-  var manifestUrl  = URL.createObjectURL(manifestBlob);
-  var manifestLink = document.createElement("link");
-  manifestLink.rel  = "manifest";
-  manifestLink.href = manifestUrl;
-  document.head.appendChild(manifestLink);
-} catch(e){}
 </script>
 
 </body>
