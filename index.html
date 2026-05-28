@@ -976,7 +976,20 @@ window.addEventListener("load", function(){
     setTimeout(function(){ ol.style.display="none"; }, 500);
   }, 800);
   checkInstallHint();
-});
+  var saved = localStorage.getItem("prima_queue_num");
+  if(saved){
+    document.getElementById("queue-input").value = saved;
+    setTimeout(function(){
+      _queueNum = parseInt(saved);
+      fetchStatus(_queueNum, function(data){
+        if(data && data.status === "success"){
+          showStatusScreen(data);
+          startPolling();
+        }
+      });
+    }, 900);
+  }
+}); // ← closing bracket here
 
 // ══════════════════════════════════════════════════════
 //  PWA — ADD TO HOME SCREEN
@@ -1373,6 +1386,7 @@ function stopPolling(){
 // ══════════════════════════════════════════════════════
 function resetToInput(){
   stopPolling();
+  localStorage.removeItem("prima_queue_num");
   _queueNum = null;
   _calledNotified  = false;
   _standbyNotified = false;
