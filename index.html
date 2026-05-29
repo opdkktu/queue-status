@@ -975,7 +975,18 @@ window.addEventListener("load", function(){
     ol.classList.add("hide");
     setTimeout(function(){ ol.style.display="none"; }, 500);
   }, 800);
+
   checkInstallHint();
+
+  // Notification prompt — outside the 800ms timeout
+  setTimeout(function(){
+    if(window.OneSignalDeferred){
+      OneSignalDeferred.push(async function(OneSignal){
+        await OneSignal.Notifications.requestPermission();
+      });
+    }
+  }, 2000);
+
   var saved = localStorage.getItem("prima_queue_num");
   if(saved){
     document.getElementById("queue-input").value = saved;
@@ -989,7 +1000,7 @@ window.addEventListener("load", function(){
       });
     }, 900);
   }
-}); // ← closing bracket here
+});
 
 // ══════════════════════════════════════════════════════
 //  PWA — ADD TO HOME SCREEN
