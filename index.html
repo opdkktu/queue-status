@@ -793,6 +793,27 @@ body {
 }
 .saringan-score-row:last-child { border-bottom: none; }
 .saringan-score-val { font-weight: 700; color: var(--text1); }
+  @keyframes saringanPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(139,92,246,.6); opacity: 1; }
+  50%     { box-shadow: 0 0 0 8px rgba(139,92,246,0); opacity: .85; }
+}
+.btn-saringan-minda {
+  background: rgba(139,92,246,.2);
+  border: 1px solid rgba(139,92,246,.5);
+  border-radius: 10px;
+  color: #C4B5FD;
+  font-size: 11px; font-weight: 700;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: var(--sans);
+  animation: saringanPulse 1.8s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.saringan-teaser {
+  font-size: 11px; color: var(--text3);
+  font-style: italic; margin-top: 4px;
+  line-height: 1.4;
+}
 </style>
 </head>
 <body>
@@ -1353,7 +1374,8 @@ if(stage === "NURSE"){
   saringanBtn = "<div style='margin-top:6px;'>" +
     (isDone
       ? "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>"
-      : "<button onclick='openSaringan()' style='background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);border-radius:8px;color:#C4B5FD;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:var(--sans);'>🧠 Saringan Minda</button>"
+      : "<button onclick='openSaringan()' style='background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);border-radius:8px;color:#C4B5FD;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:var(--sans);'>🧠 Saringan Minda</button>"+
+     "<div class='saringan-teaser'>Bosan menunggu panggilan? Jom isi! Soalan ringkas je... 😊</div>"
     ) + "</div>";
 }
     return "<div class='station "+cls+"'>" +
