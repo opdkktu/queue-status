@@ -739,6 +739,60 @@ body {
   #screen-input { padding: 40px 32px; }
   .input-card { padding: 36px 32px; }
 }
+  #saringan-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 5000;
+  background: var(--bg);
+  flex-direction: column;
+}
+#saringan-overlay.open { display: flex; }
+
+.saringan-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+.saringan-bar .s-num {
+  font-family: var(--mono); font-size: 20px;
+  font-weight: 700; color: var(--accent);
+}
+.saringan-bar .s-title {
+  flex: 1; font-size: 13px; font-weight: 600; color: var(--text2);
+}
+.btn-close-saringan {
+  background: rgba(239,68,68,.15);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px; color: var(--red);
+  font-size: 12px; font-weight: 700;
+  padding: 7px 14px; cursor: pointer;
+  font-family: var(--sans);
+}
+
+/* Score summary card on status screen */
+.saringan-result-card {
+  background: rgba(0,200,150,.06);
+  border: 1px solid rgba(0,200,150,.25);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: none;
+}
+.saringan-result-card.show { display: block; }
+.saringan-result-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--accent); letter-spacing: .12em;
+  text-transform: uppercase; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.saringan-score-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text2);
+  padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.saringan-score-row:last-child { border-bottom: none; }
+.saringan-score-val { font-weight: 700; color: var(--text1); }
 </style>
 </head>
 <body>
@@ -869,7 +923,12 @@ body {
         <div class="progress-fill" id="progress-fill" style="width:0%"></div>
       </div>
     </div>
-
+    
+<!-- Saringan result summary -->
+<div class="saringan-result-card" id="saringan-result-card">
+  <div class="saringan-result-title">✅ Saringan Kesihatan Mental Selesai</div>
+  <div id="saringan-score-rows"></div>
+</div>
     <!-- Notification request -->
     <div class="notif-card" id="notif-card">
       <div class="notif-icon">🔔</div>
@@ -907,23 +966,18 @@ body {
     <button class="btn-back" onclick="resetToInput()">← Semak Nombor Lain</button>
   </section>
 
-  <section class="screen" id="screen-saringan">
-  <div class="patient-badge" style="margin-bottom:16px;">
-    <div class="patient-num" id="saringan-num">—</div>
-    <div class="patient-info">
-      <div class="patient-label">Saringan Kesihatan Mental</div>
-      <div class="patient-series">Sambil menunggu giliran anda</div>
-    </div>
-    <button class="btn-reset" onclick="closeSaringan()">✕ Tutup</button>
+  <!-- ══ SARINGAN OVERLAY ══ -->
+<div id="saringan-overlay">
+  <div class="saringan-bar">
+    <div class="s-num" id="saringan-num">—</div>
+    <div class="s-title">🧠 Saringan Kesihatan Mental</div>
+    <button class="btn-close-saringan" onclick="closeSaringan()">✕ Tutup</button>
   </div>
-  <iframe
-    id="saringan-iframe"
-    src=""
-    style="width:100%;height:80dvh;border:none;border-radius:16px;
-           background:white;"
+  <iframe id="saringan-iframe" src=""
+    style="flex:1;border:none;width:100%;"
     allow="camera;microphone">
   </iframe>
-</section>
+</div>
 
 </div><!-- end .app -->
 
@@ -1276,7 +1330,7 @@ function renderTrain(data){
     var roomNum = cp.calledBy.replace(/\D/g,"");
     roomLabel = roomNum ? " — Bilik " + roomNum : "";
   } else if(stage === "NURSE" && cp.calledBy){
-    roomLabel = " — Kaunter Jururawat";
+    roomLabel = " Jururawat - Kaunter A";
   }
   badge = "<span class='station-badge badge-current'>🔔 Dipanggil" + roomLabel + "</span>";
     } else if(isCur){
@@ -1293,12 +1347,21 @@ if(stage === "DOCTOR" && cp.calledBy){
 var timeHtml = cp.calledAt
   ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
   : "";
-
+var saringanBtn = "";
+if(stage === "NURSE"){
+  var isDone = window._saringanDone;
+  saringanBtn = "<div style='margin-top:6px;'>" +
+    (isDone
+      ? "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>"
+      : "<button onclick='openSaringan()' style='background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);border-radius:8px;color:#C4B5FD;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:var(--sans);'>🧠 Saringan Minda</button>"
+    ) + "</div>";
+}
     return "<div class='station "+cls+"'>" +
       "<div class='station-dot'>" + lbl.icon + "</div>" +
       "<div class='station-body'>" +
         "<div class='station-name'>" + lbl.name + "</div>" +
         "<div class='station-meta'>" + timeHtml + badge + "</div>" +
+       saringanBtn +
       "</div>" +
     "</div>";
   }).join("");
@@ -1382,6 +1445,10 @@ function checkAlerts(data){
 //  CALLED SCREEN
 // ══════════════════════════════════════════════════════
 function showCalledScreen(data){
+  // Pause saringan if open
+  if(document.getElementById('saringan-overlay').classList.contains('open')){
+    closeSaringan(); // pauses, preserves iframe
+  }
   document.getElementById("screen-status").classList.remove("active");
   document.getElementById("screen-called").classList.add("active");
   var numPad = String(data.inputNum).padStart(4,"0");
@@ -1521,23 +1588,73 @@ function playNotifSound(){
     aud.play().catch(function(){});
   } catch(e){}
 }
+  // Global state
+window._saringanDone = false;
+window._saringanPaused = false;
+  
 function openSaringan() {
   var name = document.getElementById('badge-name').textContent.trim() || '';
   // Pass name via query param so Saringan Minda can prefill it
   var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
-  document.getElementById('saringan-iframe').src = url;
+  if(!window._saringanPaused) {
+    // Fresh open — set src
+    document.getElementById('saringan-iframe').src = url;
+  }
+  // else: src already set, iframe resumes from where it was
   document.getElementById('saringan-num').textContent = 
   document.getElementById('badge-num').textContent;
-  document.getElementById('screen-status').classList.remove('active');
-  document.getElementById('screen-saringan').classList.add('active');
+  document.getElementById('saringan-overlay').classList.add('open');
+  window._saringanPaused = false;
 }
 
 function closeSaringan() {
-  document.getElementById('saringan-iframe').src = '';
-  document.getElementById('screen-saringan').classList.remove('active');
-  document.getElementById('screen-status').classList.add('active');
+  // Don't clear src — preserve iframe state for resume
+  window._saringanPaused = true;
+  document.getElementById('saringan-num').textContent =
+    document.getElementById('badge-num').textContent;
+  document.getElementById('saringan-overlay').classList.add('open');
+  window._saringanPaused = false;
+}
+
+function closeSaringan() {
+  // Don't clear src — preserve iframe state for resume
+  window._saringanPaused = true;
+  document.getElementById('saringan-overlay').classList.remove('open');
   if(_queueNum) startPolling();
 }
+
+// Called by Saringan Minda iframe when test completes
+function receiveSaringanResult(scores) {
+  window._saringanDone = true;
+  window._saringanPaused = false;
+  
+  // Close overlay
+  document.getElementById('saringan-overlay').classList.remove('open');
+  document.getElementById('saringan-iframe').src = ''; // now safe to clear
+  
+  // Show result card
+  var card = document.getElementById('saringan-result-card');
+  card.classList.add('show');
+  
+  var rows = [
+    { label: 'Whooley', val: scores.whooley },
+    { label: 'PHQ-9',   val: scores.phq     },
+    { label: 'GAD-2',   val: scores.gad     }
+  ];
+  document.getElementById('saringan-score-rows').innerHTML =
+    rows.map(function(r){
+      return "<div class='saringan-score-row'>" +
+        "<span>" + r.label + "</span>" +
+        "<span class='saringan-score-val'>" + r.val + "</span>" +
+      "</div>";
+    }).join('');
+  
+  // Re-render train to show green tick
+  if(_lastStatus) renderTrain(_lastStatus);
+  
+  if(_queueNum) startPolling();
+}
+
 // ══════════════════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════════════════
