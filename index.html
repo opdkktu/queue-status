@@ -885,6 +885,14 @@ body {
       <div class="refresh-dot"></div>
       <span>Dikemaskini setiap 30s · <span id="last-refresh">--:--:--</span></span>
     </div>
+    
+    <<div style="margin-bottom:16px;">
+  <button class="btn-submit" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);"
+          onclick="openSaringan()">
+    <span>🧠</span>
+    <span>Saringan Kesihatan Mental — Sambil Menunggu</span>
+  </button>
+</div>
 
   </section>
 
@@ -898,6 +906,24 @@ body {
     </div>
     <button class="btn-back" onclick="resetToInput()">← Semak Nombor Lain</button>
   </section>
+
+  <section class="screen" id="screen-saringan">
+  <div class="patient-badge" style="margin-bottom:16px;">
+    <div class="patient-num" id="saringan-num">—</div>
+    <div class="patient-info">
+      <div class="patient-label">Saringan Kesihatan Mental</div>
+      <div class="patient-series">Sambil menunggu giliran anda</div>
+    </div>
+    <button class="btn-reset" onclick="closeSaringan()">✕ Tutup</button>
+  </div>
+  <iframe
+    id="saringan-iframe"
+    src=""
+    style="width:100%;height:80dvh;border:none;border-radius:16px;
+           background:white;"
+    allow="camera;microphone">
+  </iframe>
+</section>
 
 </div><!-- end .app -->
 
@@ -1495,7 +1521,23 @@ function playNotifSound(){
     aud.play().catch(function(){});
   } catch(e){}
 }
+function openSaringan() {
+  var name = document.getElementById('badge-name').textContent.trim() || '';
+  // Pass name via query param so Saringan Minda can prefill it
+  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
+  document.getElementById('saringan-iframe').src = url;
+  document.getElementById('saringan-num').textContent = 
+  document.getElementById('badge-num').textContent;
+  document.getElementById('screen-status').classList.remove('active');
+  document.getElementById('screen-saringan').classList.add('active');
+}
 
+function closeSaringan() {
+  document.getElementById('saringan-iframe').src = '';
+  document.getElementById('screen-saringan').classList.remove('active');
+  document.getElementById('screen-status').classList.add('active');
+  if(_queueNum) startPolling();
+}
 // ══════════════════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════════════════
