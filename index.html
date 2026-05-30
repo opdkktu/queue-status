@@ -794,10 +794,12 @@ body {
 .saringan-score-row:last-child { border-bottom: none; }
 .saringan-score-val { font-weight: 700; color: var(--text1); }
   @keyframes saringanPulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(139,92,246,.6); opacity: 1; }
-  50%     { box-shadow: 0 0 0 8px rgba(139,92,246,0); opacity: .85; }
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(139,92,246,.85); }
+  40%  { transform: scale(1.07); box-shadow: 0 0 0 8px rgba(139,92,246,0); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(139,92,246,0); }
 }
 .btn-saringan-minda {
+  animation: saringanPulse 1.4s cubic-bezier(.4,0,.6,1) infinite;
   background: rgba(139,92,246,.2);
   border: 1px solid rgba(139,92,246,.5);
   border-radius: 10px;
@@ -813,6 +815,28 @@ body {
   font-size: 11px; color: var(--text3);
   font-style: italic; margin-top: 4px;
   line-height: 1.4;
+}
+  .chat-bubble {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(139,92,246,.15); border:1px solid rgba(139,92,246,.3);
+  border-radius:16px 16px 16px 4px; padding:8px 14px;
+  font-size:12px; color:#C4B5FD; margin-top:6px;
+  animation: bubbleIn .4s cubic-bezier(.34,1.2,.64,1) both;
+}
+@keyframes bubbleIn {
+  from { opacity:0; transform:translateY(6px) scale(.95); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.typing-dots span {
+  display:inline-block; width:5px; height:5px; border-radius:50%;
+  background:#C4B5FD; margin:0 1.5px;
+  animation: typingBob .9s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay:.15s; }
+.typing-dots span:nth-child(3) { animation-delay:.3s; }
+@keyframes typingBob {
+  0%,60%,100% { transform:translateY(0); opacity:.5; }
+  30%         { transform:translateY(-4px); opacity:1; }
 }
 </style>
 </head>
@@ -1374,8 +1398,9 @@ if(stage === "NURSE"){
   saringanBtn = "<div style='margin-top:6px;'>" +
     (isDone
       ? "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>"
-      : "<button onclick='openSaringan()' style='background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);border-radius:8px;color:#C4B5FD;font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:var(--sans);'>🧠 Saringan Minda</button>"+
-     "<div class='saringan-teaser'>Bosan menunggu panggilan? Jom isi! Soalan ringkas je... 😊</div>"
+      :"<div id='chat-nurse-" + idx + "' class='chat-bubble'>" +
+"  <div class='typing-dots'><span></span><span></span><span></span></div>" +
+"</div>"
     ) + "</div>";
 }
     return "<div class='station "+cls+"'>" +
@@ -1393,8 +1418,12 @@ if(stage === "NURSE"){
     var dots = track.querySelectorAll(".station-dot");
     // We'll draw the line via a pseudo element approach — already handled in CSS
   }, 100);
-}
 
+  setTimeout(function(){
+  var b = document.getElementById('chat-nurse-2');
+  if(b) b.innerHTML = '💬 Bosan menunggu? Senang je — jom isi! 😊';
+}, 1800);
+}
 // ══════════════════════════════════════════════════════
 //  RENDER PROGRESS BAR
 // ══════════════════════════════════════════════════════
@@ -1615,8 +1644,7 @@ window._saringanDone = false;
 window._saringanPaused = false;
   
 function openSaringan() {
-  var name = document.getElementById('badge-name').textContent.trim() || '';
-  // Pass name via query param so Saringan Minda can prefill it
+var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
   var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
   if(!window._saringanPaused) {
     // Fresh open — set src
@@ -1708,6 +1736,11 @@ function hideToast(){
 if("Notification" in window && Notification.permission === "granted"){
   _notifGranted = true;
 }
+  window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'SARINGAN_DONE') {
+    receiveSaringanResult(e.data.scores);
+  }
+});
 </script>
 
 </body>
