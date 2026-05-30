@@ -1049,7 +1049,7 @@ var GAS_URL = "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3
 
 var WAIT_PER_NUM_MIN = 15; // estimated minutes per queue number
 var POLL_INTERVAL_MS = 10000; // 10 seconds
-
+window._saringanBubbleRevealed = false;
 var STAGE_LABELS = {
   KAUNTER : { name:"Kaunter Pendaftaran", icon:"📋", short:"Pendaftaran" },
   NURSE   : { name:"Stesen Jururawat",    icon:"🩺", short:"Jururawat"  },
@@ -1393,14 +1393,19 @@ var timeHtml = cp.calledAt
   : "";
 var saringanBtn = "";
 if(stage === "NURSE"){
-  var isDone = window._saringanDone;
-  saringanBtn = "<div style='margin-top:6px;'>" +
-    (isDone
-      ? "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>"
-      :"<div id='chat-nurse-" + idx + "' class='chat-bubble'>" +
-"  <div class='typing-dots'><span></span><span></span><span></span></div>" +
-"</div>"
-    ) + "</div>";
+  if(window._saringanDone){
+    saringanBtn = "<div style='margin-top:6px;'>" +
+      "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>" +
+      "</div>";
+  } else if(isCur) {
+    // Only show bubble when NURSE is the CURRENT stage
+    var bubbleText = window._saringanBubbleRevealed
+      ? '💬 Bosan menunggu? Senang je — jom isi! 😊'
+      : '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    saringanBtn = "<div style='margin-top:6px;'>" +
+      "<div class='chat-bubble' id='saringan-chat-bubble'>" + bubbleText + "</div>" +
+      "</div>";
+  }
 }
     return "<div class='station "+cls+"'>" +
       "<div class='station-dot'>" + lbl.icon + "</div>" +
@@ -1418,10 +1423,15 @@ if(stage === "NURSE"){
     // We'll draw the line via a pseudo element approach — already handled in CSS
   }, 100);
 
+  if(!window._saringanBubbleRevealed){
   setTimeout(function(){
-  var b = document.getElementById('chat-nurse-2');
-  if(b) b.innerHTML = '💬 Bosan menunggu? Senang je — jom isi! 😊';
-}, 1800);
+    var b = document.getElementById('saringan-chat-bubble');
+    if(b){
+      b.innerHTML = '💬 Bosan menunggu? Senang je — jom isi! 😊';
+      window._saringanBubbleRevealed = true;
+    }
+  }, 1800);
+}
 }
 // ══════════════════════════════════════════════════════
 //  RENDER PROGRESS BAR
@@ -1547,6 +1557,7 @@ function resetToInput(){
   _queueNum = null;
   _calledNotified  = false;
   _standbyNotified = false;
+  window._saringanBubbleRevealed = false;
   document.getElementById("queue-input").value = "";
   document.getElementById("input-error").textContent = "";
   document.getElementById("screen-status").classList.remove("active");
