@@ -1680,20 +1680,19 @@ window._saringanDone = false;
 window._saringanPaused = false;
   
 function openSaringan() {
-var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
+  var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';
   var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name) + '&qnum=' + encodeURIComponent(_queueNum || '');
+  
   if(!window._saringanPaused) {
-    try { 
-      localStorage.setItem('prima_prefill_name', name); } catch(e){}
-    // Only set src on fresh open, not resume
+    try { localStorage.setItem('prima_prefill_name', name); } catch(e){}
     document.getElementById('saringan-iframe').src = url;
   }
-    document.getElementById('saringan-num').textContent =
+  document.getElementById('saringan-num').textContent =
     document.getElementById('badge-num').textContent;
   document.getElementById('saringan-overlay').classList.add('open');
   window._saringanPaused = false;
   startSaringanWatcher();
-  }
+}
 
   // else: src already set, iframe resumes from where it was
   document.getElementById('saringan-num').textContent = 
