@@ -1381,7 +1381,7 @@ var timeHtml = cp.calledAt
   ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
   : "";
 var saringanBtn = "";
-if(stage === "NURSE"){
+if(stage === "NURSE"|| stage === "DOCTOR"){
   if(window._saringanDone){
     saringanBtn = "<div style='margin-top:6px;'>" +
       "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>" +
