@@ -1010,6 +1010,19 @@ body {
     <button class="btn-back" onclick="resetToInput()">← Semak Nombor Lain</button>
   </section>
 
+  <!-- ══ SARINGAN OVERLAY ══ -->
+<div id="saringan-overlay">
+  <div class="saringan-bar">
+    <div class="s-num" id="saringan-num">—</div>
+    <div class="s-title">🧠 Saringan Kesihatan Mental</div>
+    <button class="btn-close-saringan" onclick="closeSaringan()">✕ Tutup</button>
+  </div>
+  <iframe id="saringan-iframe" src=""
+    style="flex:1;border:none;width:100%;"
+    allow="camera;microphone">
+  </iframe>
+</div>
+
 </div><!-- end .app -->
 
 <!-- ALERT TOAST -->
