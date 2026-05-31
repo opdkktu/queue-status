@@ -1660,11 +1660,18 @@ window._saringanPaused = false;
 function openSaringan() {
 var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
   var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
-  var iframeEl = document.getElementById('saringan-iframe');
+  document.getElementById('saringan-iframe').src = url;
 
-if(!window._saringanPaused) {
-  iframeEl.src = url;
-}
+  if(!window._saringanPaused) {
+    // Only set src on fresh open, not resume
+    document.getElementById('saringan-iframe').src = url;
+    document.getElementById('saringan-iframe').onload = function() {
+      document.getElementById('saringan-iframe').contentWindow.postMessage({
+        type: 'PRIMA_INIT', name: name
+      }, '*');
+    };
+  }
+
   // else: src already set, iframe resumes from where it was
   document.getElementById('saringan-num').textContent = 
   document.getElementById('badge-num').textContent;
