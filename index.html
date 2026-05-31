@@ -1463,8 +1463,7 @@ function checkAlerts(data){
   var myNum    = data.inputNum;
   var myStage  = data.currentStage;
   var curCalling = data.currentCallingNum;
-  var ahead    = data.numbersAhead;
-
+  var ahead = parseInt(data.numbersAhead);
   // ── CALLED — my exact number is now being called at my current stage ──
   // Triggers when: my entry exists at currentStage with status WAITING/CALLED
   var myCheckpoint = (data.checkpoints||[]).filter(function(c){
@@ -1473,7 +1472,7 @@ function checkAlerts(data){
 
   var iAmBeingCalled = myCheckpoint
     && (myCheckpoint.status === "WAITING" || myCheckpoint.status === "CALLED")
-    && curCalling === myNum;
+   && parseInt(curCalling) === parseInt(myNum);
 
   if(iAmBeingCalled && !_calledNotified){
     _calledNotified = true;
@@ -1488,8 +1487,7 @@ function checkAlerts(data){
   }
 
   // ── STANDBY — exactly 1 number before mine at my current stage ──
-  var isStandby = ahead === 1 && !iAmBeingCalled;
-
+var isStandby = parseInt(ahead) === 1 && !iAmBeingCalled;
   if(isStandby && !_standbyNotified){
     _standbyNotified = true;
     showToast("standby",
