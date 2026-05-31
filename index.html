@@ -1666,6 +1666,7 @@ var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass n
     // Only set src on fresh open, not resume
     document.getElementById('saringan-iframe').src = url;
     document.getElementById('saringan-iframe').onload = function() {
+      console.log('[PRIMA] iframe loaded, sending name:', name);
       document.getElementById('saringan-iframe').contentWindow.postMessage({
         type: 'PRIMA_INIT', name: name
       }, '*');
@@ -1750,6 +1751,7 @@ if("Notification" in window && Notification.permission === "granted"){
   _notifGranted = true;
 }
   window.addEventListener('message', function(e) {
+    console.log('[PRIMA] message received from:', e.origin, e.data);
   if (e.data && e.data.type === 'SARINGAN_DONE') {
     receiveSaringanResult(e.data.scores);
   }
