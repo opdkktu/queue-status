@@ -1681,9 +1681,20 @@ var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass n
 }
 
 function closeSaringan() {
-  // Don't clear src — preserve iframe state for resume
   window._saringanPaused = true;
   document.getElementById('saringan-overlay').classList.remove('open');
+  
+  // Check if saringan completed
+  var result = localStorage.getItem('saringan_result');
+  if(result) {
+    try {
+      var data = JSON.parse(result);
+      if(data.type === 'SARINGAN_DONE') {
+        localStorage.removeItem('saringan_result');
+        receiveSaringanResult(data.scores);
+      }
+    } catch(e){}
+  }
   if(_queueNum) startPolling();
 }
 
