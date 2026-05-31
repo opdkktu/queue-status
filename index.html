@@ -1671,15 +1671,6 @@ var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass n
 function closeSaringan() {
   // Don't clear src — preserve iframe state for resume
   window._saringanPaused = true;
-  document.getElementById('saringan-num').textContent =
-    document.getElementById('badge-num').textContent;
-  document.getElementById('saringan-overlay').classList.add('open');
-  window._saringanPaused = false;
-}
-
-function closeSaringan() {
-  // Don't clear src — preserve iframe state for resume
-  window._saringanPaused = true;
   document.getElementById('saringan-overlay').classList.remove('open');
   if(_queueNum) startPolling();
 }
