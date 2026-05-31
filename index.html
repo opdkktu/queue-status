@@ -1693,14 +1693,6 @@ function openSaringan() {
   window._saringanPaused = false;
   startSaringanWatcher();
 }
-
-  // else: src already set, iframe resumes from where it was
-  document.getElementById('saringan-num').textContent = 
-  document.getElementById('badge-num').textContent;
-  document.getElementById('saringan-overlay').classList.add('open');
-  window._saringanPaused = false;
-}
-
 function closeSaringan() {
   window._saringanPaused = true;
   document.getElementById('saringan-overlay').classList.remove('open');
