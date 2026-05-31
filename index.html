@@ -1552,23 +1552,26 @@ function stopPolling(){
 }
   
 function startSaringanWatcher() {
-  var watcher = setInterval(function() {
-    try {
-      var raw = localStorage.getItem('saringan_result');
-      if(!raw) return;
-      var data = JSON.parse(raw);
-      if(data.type === 'SARINGAN_DONE') {
-        clearInterval(watcher);
-        localStorage.removeItem('saringan_result');
-        console.log('[PRIMA] saringan result detected:', data.scores);
-        receiveSaringanResult(data.scores);
-        // Close overlay if still open
-        document.getElementById('saringan-overlay').classList.remove('open');
-        window._saringanPaused = false;
-      }
-    } catch(e){}
-  }, 1000); // check every 1 second
-  window._saringanWatcher = watcher;
+  if(window._saringanWatcher) clearInterval(window._saringanWatcher);
+  window._saringanWatcher = setInterval(function() {
+    if(!_queueNum) return;
+    fetch(GAS_URL + '?action=saringanStatus&num=' + _queueNum)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.found) {
+          clearInterval(window._saringanWatcher);
+          window._saringanWatcher = null;
+          console.log('[PRIMA] saringan result from GAS:', data);
+          receiveSaringanResult({
+            whooley: data.whooley,
+            phq: String(data.phq),
+            gad: String(data.gad)
+          });
+          document.getElementById('saringan-overlay').classList.remove('open');
+          window._saringanPaused = false;
+        }
+      }).catch(function(){});
+  }, 3000);
 }
 // ══════════════════════════════════════════════════════
 //  RESET
@@ -1678,19 +1681,19 @@ window._saringanPaused = false;
   
 function openSaringan() {
 var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
-  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
+  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name)+ '&qnum='encodeURIComponent(_queueNum || ''); +
   document.getElementById('saringan-iframe').src = url;
-
   if(!window._saringanPaused) {
+    try { 
+      localStorage.setItem('prima_prefill_name', name); } catch(e){}
     // Only set src on fresh open, not resume
     document.getElementById('saringan-iframe').src = url;
-    document.getElementById('saringan-iframe').onload = function() {
-      console.log('[PRIMA] iframe loaded, sending name:', name);
-      document.getElementById('saringan-iframe').contentWindow.postMessage({
-        type: 'PRIMA_INIT', name: name
-      }, '*');
-    };
-    startSaringanWatcher();
+  }
+    document.getElementById('saringan-num').textContent =
+    document.getElementById('badge-num').textContent;
+  document.getElementById('saringan-overlay').classList.add('open');
+  window._saringanPaused = false;
+  startSaringanWatcher();
   }
 
   // else: src already set, iframe resumes from where it was
