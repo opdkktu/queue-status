@@ -1681,8 +1681,7 @@ window._saringanPaused = false;
   
 function openSaringan() {
 var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
-  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name)+ '&qnum='encodeURIComponent(_queueNum || ''); +
-  document.getElementById('saringan-iframe').src = url;
+  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name) + '&qnum=' + encodeURIComponent(_queueNum || '');
   if(!window._saringanPaused) {
     try { 
       localStorage.setItem('prima_prefill_name', name); } catch(e){}
