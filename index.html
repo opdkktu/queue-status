@@ -1405,6 +1405,9 @@ if(stage === "NURSE"|| stage === "DOCTOR"){
       ? '💬 Bosan menunggu? Senang je — jom isi! 😊'
       : '<div class="typing-dots"><span></span><span></span><span></span></div>';
     saringanBtn = "<div style='margin-top:6px;'>" +
+      "<button class='btn-saringan-minda' onclick='openSaringan()'>" +
+"🧠 Saringan Kesihatan Mental" +
+"</button>" +
  "<div class='chat-bubble' id='saringan-chat-bubble' onclick='openSaringan()' style='cursor:pointer;'>" + bubbleText + "</div>" +
   "</div>";}
 }
@@ -1658,11 +1661,11 @@ window._saringanPaused = false;
 function openSaringan() {
 var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';  // Pass name via query param so Saringan Minda can prefill it
   var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name);
-  if(!window._saringanPaused) {
-    // Fresh open — set src
-    document.getElementById('saringan-iframe').src = url;
-    if(iframeEl) iframeEl.src = url;
-  }
+  var iframeEl = document.getElementById('saringan-iframe');
+
+if(!window._saringanPaused) {
+  iframeEl.src = url;
+}
   // else: src already set, iframe resumes from where it was
   document.getElementById('saringan-num').textContent = 
   document.getElementById('badge-num').textContent;
