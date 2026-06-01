@@ -1047,6 +1047,9 @@ body {
 var GAS_URL = "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec";
 // e.g. "https://script.google.com/macros/s/AKfy.../exec"
 
+var _saringanToken = null;     // short-lived token from GAS
+var _maskedPatient = null;     // masked data for display only
+
 var WAIT_PER_NUM_MIN = 15; // estimated minutes per queue number
 var POLL_INTERVAL_MS = 10000; // 10 seconds
 window._saringanBubbleRevealed = false;
@@ -1337,6 +1340,12 @@ function showStatusScreen(data){
   // Notification state
   updateNotifBtn();
 
+  // ── Phase 2: fetch prefill data once per queue number ──
+  if (_queueNum && !_saringanToken && !window._saringanDone) {
+    fetchQueuePrefill(_queueNum);
+    console.log("[STATUS] Triggered prefill fetch for:", _queueNum);
+  }
+  
   // Timestamp
   var d = new Date();
   document.getElementById("last-refresh").textContent =
@@ -1582,6 +1591,10 @@ function resetToInput(){
   _queueNum = null;
   _calledNotified  = false;
   _standbyNotified = false;
+  _saringanToken = null;    
+  _maskedPatient = null;    
+  var ms = document.getElementById("masked-patient-strip");
+  if (ms) ms.remove();    
   window._saringanBubbleRevealed = false;
   window._saringanDone = false;  
   document.getElementById("queue-input").value = "";
@@ -1678,18 +1691,110 @@ function playNotifSound(){
   // Global state
 window._saringanDone = false;
 window._saringanPaused = false;
-  
-function openSaringan() {
-  var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : '';
-  var url = 'https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec?name=' + encodeURIComponent(name) + '&qnum=' + encodeURIComponent(_queueNum || '');
-  
-  if(!window._saringanPaused) {
-    try { localStorage.setItem('prima_prefill_name', name); } catch(e){}
-    document.getElementById('saringan-iframe').src = url;
+  function fetchQueuePrefill(qnum) {
+  console.log("[PREFILL] Fetching prefill for qnum:", qnum);
+  var url = GAS_URL + "?action=getQueuePrefill&qnum=" + encodeURIComponent(qnum);
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      console.log("[PREFILL] Response:", JSON.stringify(data));
+      if (data.status === "ok") {
+        _saringanToken  = data.token;
+        _maskedPatient  = data.masked;
+        renderMaskedBadge(data.masked);
+      } else {
+        console.warn("[PREFILL] Not found or error:", data.message);
+        _saringanToken = null;
+        _maskedPatient = null;
+      }
+    })
+    .catch(function(e) {
+      console.error("[PREFILL] Fetch error:", e);
+    });
+}
+  function renderMaskedBadge(masked) {
+  console.log("[PREFILL] Rendering masked badge:", JSON.stringify(masked));
+  // Remove existing masked badge if any
+  var existing = document.getElementById("masked-patient-strip");
+  if (existing) existing.remove();
+
+  if (!masked || !masked.name) return;
+
+  var strip = document.createElement("div");
+  strip.id = "masked-patient-strip";
+  strip.style.cssText = [
+    "background:rgba(0,200,150,.07)",
+    "border:1px solid rgba(0,200,150,.25)",
+    "border-radius:12px",
+    "padding:10px 14px",
+    "margin-bottom:14px",
+    "font-size:12px",
+    "color:var(--text2)",
+    "display:flex",
+    "flex-wrap:wrap",
+    "gap:10px",
+    "align-items:center"
+  ].join(";");
+
+  var fields = [
+    { label: "Nama",    val: masked.name         || "—" },
+    { label: "IC",      val: masked.ic_masked     || "—" },
+    { label: "Tel",     val: masked.phone_masked  || "—" },
+    { label: "E-mel",   val: masked.email_masked  || "—" }
+  ];
+
+  var inner = fields.map(function(f) {
+    return "<span style='display:flex;flex-direction:column;gap:1px;'>" +
+      "<span style='font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;'>" + f.label + "</span>" +
+      "<span style='font-weight:600;color:var(--accent);font-family:var(--mono);font-size:11px;'>" + f.val + "</span>" +
+    "</span>";
+  }).join("<span style='color:var(--border2);'>|</span>");
+
+  strip.innerHTML =
+    "<span style='font-size:14px;flex-shrink:0;'>🔒</span>" +
+    inner +
+    "<span style='margin-left:auto;font-size:9px;color:var(--text3);font-style:italic;'>Data disamarkan untuk privasi</span>";
+
+  // Insert after patient-badge
+  var badge = document.getElementById("patient-badge");
+  if (badge && badge.parentNode) {
+    badge.parentNode.insertBefore(strip, badge.nextSibling);
+    console.log("[PREFILL] Masked badge rendered");
   }
-  document.getElementById('saringan-num').textContent =
-    document.getElementById('badge-num').textContent;
-  document.getElementById('saringan-overlay').classList.add('open');
+}
+function openSaringan() {
+  console.log("[SARINGAN] Opening. Token present:", !!_saringanToken, "| Paused:", window._saringanPaused);
+
+  // Build iframe URL — add token if available, name as fallback only
+  var baseUrl = "https://script.google.com/a/macros/moh.gov.my/s/AKfycbz4UqmYlwrGEFwSPGcN8Din_F42MZyHhgsAWzE0lQalg6_d6paJN3CxbXKrLqMrZBr3/exec";
+  var params  = [];
+
+  if (_saringanToken) {
+    // Token path — full prefill from MESRA (Phase 3)
+    params.push("token=" + encodeURIComponent(_saringanToken));
+    console.log("[SARINGAN] Using token prefill path");
+  } else {
+    // Fallback — name only (existing behaviour)
+    var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : "";
+    if (name) params.push("name=" + encodeURIComponent(name));
+    console.log("[SARINGAN] Using name-only fallback path");
+  }
+
+  if (_queueNum) {
+    params.push("qnum=" + encodeURIComponent(_queueNum));
+  }
+
+  var url = baseUrl + (params.length ? "?" + params.join("&") : "");
+
+  if (!window._saringanPaused) {
+    try { localStorage.setItem("prima_prefill_name", (_lastStatus && _lastStatus.name) || ""); } catch(e) {}
+    document.getElementById("saringan-iframe").src = url;
+    console.log("[SARINGAN] iframe src set:", url.replace(/token=[^&]+/, "token=REDACTED"));
+  }
+
+  document.getElementById("saringan-num").textContent =
+    document.getElementById("badge-num").textContent;
+  document.getElementById("saringan-overlay").classList.add("open");
   window._saringanPaused = false;
   startSaringanWatcher();
 }
