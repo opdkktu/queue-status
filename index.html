@@ -1118,18 +1118,28 @@ window.addEventListener("load", function(){
   }, 2000);
 
   var saved = localStorage.getItem("prima_queue_num");
-  if(saved){
-    document.getElementById("queue-input").value = saved;
-    setTimeout(function(){
-      _queueNum = parseInt(saved);
-      fetchStatus(_queueNum, function(data){
-        if(data && data.status === "success"){
-          showStatusScreen(data);
-          startPolling();
-        }
-      });
-    }, 900);
-  }
+var savedTime = parseInt(localStorage.getItem("prima_queue_time") || "0");
+
+var EIGHT_HOURS = 8 * 60 * 60 * 1000;
+
+if(saved && (Date.now() - savedTime < EIGHT_HOURS)){
+  document.getElementById("queue-input").value = saved;
+
+  setTimeout(function(){
+    _queueNum = parseInt(saved);
+    fetchStatus(_queueNum, function(data){
+      if(data && data.status === "success"){
+        showStatusScreen(data);
+        startPolling();
+      }
+    });
+  }, 900);
+
+} else {
+  // Expired
+  localStorage.removeItem("prima_queue_num");
+  localStorage.removeItem("prima_queue_time");
+}
 });
 
 // ══════════════════════════════════════════════════════
