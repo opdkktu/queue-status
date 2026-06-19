@@ -929,9 +929,18 @@ body {
     </div>
     <div class="header-time" id="hdr-clock">--:--</div>
   </header>
-
+<!-- ══ SCREEN: CLINIC SELECT ══ -->
+<section class="screen active" id="screen-clinic">
+  <div class="input-hero" style="margin-bottom:24px;">
+    <img src="prima.png" alt="PRIMA"
+      style="width:80px;height:80px;object-fit:contain;border-radius:14px;margin-bottom:16px;animation:iconBob 3s ease-in-out infinite;">
+    <h1>Pilih <span>Klinik</span></h1>
+    <p>Pilih klinik anda untuk menyemak status giliran</p>
+  </div>
+  <div id="clinic-list" style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;"></div>
+</section>
   <!-- ══ SCREEN: INPUT ══ -->
-  <section class="screen active" id="screen-input">
+  <section class="screen" id="screen-input">
     <div class="input-hero">
       <img src="prima.png" alt="PRIMA"
         style="width:90px;height:90px;object-fit:contain;
@@ -957,7 +966,11 @@ body {
       <div class="num-field-hint">Masukkan 4 digit nombor giliran anda</div>
       <div class="input-error" id="input-error"></div>
     </div>
-
+<button onclick="resetToClinicSelect()"
+  style="margin-top:10px;background:none;border:none;color:var(--text3);
+  font-size:11px;cursor:pointer;font-family:var(--sans);text-decoration:underline;">
+  ← Tukar klinik
+</button>
     <div style="width:100%;max-width:360px;">
       <button class="btn-submit" id="btn-check" onclick="submitQueueNum()">
         <span class="btn-submit-icon">🔍</span>
@@ -1105,9 +1118,28 @@ body {
 // ══════════════════════════════════════════════════════
 //  ★ CONFIG — UPDATE THESE
 // ══════════════════════════════════════════════════════
-var GAS_URL = "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec";
-// e.g. "https://script.google.com/macros/s/AKfy.../exec"
 
+  var CLINICS = [
+  {
+    id    : "ayer-hitam",
+    name  : "Klinik Kesihatan Ayer Hitam",
+    short : "KK Ayer Hitam",
+    zone  : "PKD Kubang Pasu",
+    url   : "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec",
+    color : "#00C896"
+  },
+  {
+    id    : "pokok-sena",
+    name  : "Klinik Kesihatan Pokok Sena",
+    short : "KK Pokok Sena",
+    zone  : "PKD Kubang Pasu",
+    url   : "https://script.google.com/macros/s/YOUR_POKOK_SENA_ID/exec",
+    color : "#00A8FF"
+  },
+  // Add more clinics here — just id, name, url
+];
+
+var _selectedClinic = null; // set when patient picks a clinic
 var _saringanToken = null;     // short-lived token from GAS
 var _maskedPatient = null;     // masked data for display only
 
@@ -1133,7 +1165,7 @@ window.addEventListener("beforeinstallprompt", function(e){
 window.addEventListener("appinstalled", function(){
   window._deferredPrompt = null;
   document.getElementById("install-hint").style.display = "none";
-  showToast("calling","✅ Apl Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
+  showToast("calling","✅ WebApp Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
 });
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -1161,6 +1193,40 @@ tickClock(); setInterval(tickClock, 1000);
 //  LOADING
 // ══════════════════════════════════════════════════════
 window.addEventListener("load", function(){
+  // Render clinic cards
+var clinicList = document.getElementById("clinic-list");
+CLINICS.forEach(function(c){
+  var btn = document.createElement("button");
+  btn.style.cssText = [
+    "width:100%","padding:16px 18px","border-radius:14px",
+    "border:1px solid rgba(255,255,255,.1)",
+    "background:var(--glass)","color:var(--text1)",
+    "font-family:var(--sans)","font-size:14px","font-weight:600",
+    "cursor:pointer","text-align:left",
+    "display:flex","align-items:center","gap:14px",
+    "transition:all .2s","backdrop-filter:blur(8px)"
+  ].join(";");
+  btn.innerHTML =
+    "<div style='width:10px;height:10px;border-radius:50%;background:"+c.color+";flex-shrink:0;'></div>"+
+    "<div>"+
+      "<div>"+c.name+"</div>"+
+      "<div style='font-size:11px;color:var(--text3);margin-top:2px;font-weight:400;'>"+c.zone+"</div>"+
+    "</div>"+
+    "<div style='margin-left:auto;font-size:18px;'>→</div>";
+
+  btn.addEventListener("click", function(){
+    selectClinic(c);
+  });
+  btn.addEventListener("mouseenter", function(){
+    this.style.borderColor = c.color;
+    this.style.background = "rgba(255,255,255,.07)";
+  });
+  btn.addEventListener("mouseleave", function(){
+    this.style.borderColor = "rgba(255,255,255,.1)";
+    this.style.background = "var(--glass)";
+  });
+  clinicList.appendChild(btn);
+});
   setTimeout(function(){
     var msg = document.getElementById("loader-subtext");
     if(msg){
@@ -1187,7 +1253,19 @@ window.addEventListener("load", function(){
       });
     }
   }, 2000);
-
+  // ADD before the saved queue restore block:
+var savedClinicId = localStorage.getItem("prima_clinic_id");
+if(savedClinicId){
+  var savedClinic = CLINICS.filter(function(c){ return c.id === savedClinicId; })[0];
+  if(savedClinic){
+    _selectedClinic = savedClinic;
+    document.querySelector(".brand-sub").textContent =
+      savedClinic.name + " · " + savedClinic.zone;
+    // Skip clinic screen — go directly to input
+    document.getElementById("screen-clinic").classList.remove("active");
+    document.getElementById("screen-input").classList.add("active");
+  }
+}
   var saved = localStorage.getItem("prima_queue_num");
 var savedTime = parseInt(localStorage.getItem("prima_queue_time") || "0");
 
@@ -1236,6 +1314,38 @@ function checkInstallHint(){
   // Android — shown by beforeinstallprompt event
 }
 
+// ══════════════════════════════════════════════════════
+// clinics functions
+// ══════════════════════════════════════════════════════
+function selectClinic(clinic){
+  _selectedClinic = clinic;
+
+  // Update header subtitle
+  document.querySelector(".brand-sub").textContent =
+    clinic.name + " · " + clinic.zone;
+
+  // Save selection
+  try { localStorage.setItem("prima_clinic_id", clinic.id); } catch(e){}
+
+  // Switch to input screen
+  document.getElementById("screen-clinic").classList.remove("active");
+  document.getElementById("screen-input").classList.add("active");
+  setTimeout(function(){
+    document.getElementById("queue-input").focus();
+  }, 300);
+}
+  function resetToClinicSelect(){
+  _selectedClinic = null;
+  _queueNum = null;
+  stopPolling();
+  localStorage.removeItem("prima_queue_num");
+  localStorage.removeItem("prima_queue_time");
+  localStorage.removeItem("prima_clinic_id");
+  document.getElementById("screen-input").classList.remove("active");
+  document.getElementById("screen-status").classList.remove("active");
+  document.getElementById("screen-called").classList.remove("active");
+  document.getElementById("screen-clinic").classList.add("active");
+}
 // ══════════════════════════════════════════════════════
 //  ENTER KEY SUBMIT
 // ══════════════════════════════════════════════════════
@@ -1348,7 +1458,12 @@ function _askNotifPermission(){
 //  FETCH STATUS FROM GAS
 // ══════════════════════════════════════════════════════
 function fetchStatus(num, cb){
-  var url = GAS_URL + "?action=status&num=" + encodeURIComponent(num);
+  // Use selected clinic URL — not a static GAS_URL var
+  var url = (_selectedClinic ? _selectedClinic.url : "") + "?action=status&num=" + encodeURIComponent(num);
+  if(!_selectedClinic){
+    cb({ status:"error", message:"Tiada klinik dipilih" });
+    return;
+  }
   fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(data){ cb(data); })
@@ -1645,7 +1760,7 @@ function startSaringanWatcher() {
   if(window._saringanWatcher) clearInterval(window._saringanWatcher);
   window._saringanWatcher = setInterval(function() {
     if(!_queueNum) return;
-    fetch(GAS_URL + '?action=saringanStatus&num=' + _queueNum)
+    fetch((_selectedClinic ? _selectedClinic.url : "") + '?action=saringanStatus&num=' + _queueNum)
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data.found) {
