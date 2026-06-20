@@ -1204,12 +1204,9 @@ body {
     </div>
   </div>
 
-  <iframe id="saringan-iframe" src=""
-    style="flex:1;border:none;width:100%;opacity:0;transition:opacity .4s ease;"
-    allow="camera;microphone"
-      onload="if(window.onSaringanIframeLoad) onSaringanIframeLoad()">
-  </iframe>
-</div>
+ <iframe id="saringan-iframe" src=""
+  style="display:none;">
+</iframe>
 
 </div><!-- end .app -->
 
@@ -2192,31 +2189,19 @@ function openSaringan() {
 
   var url = baseUrl + (params.length ? "?" + params.join("&") : "");
 
-  if (!window._saringanPaused) {
-    try { localStorage.setItem("prima_prefill_name", (_lastStatus && _lastStatus.name) || ""); } catch(e) {}
-    var loading = document.getElementById("saringan-loading");
-    var iframe  = document.getElementById("saringan-iframe");
-    // Reset loading state
-if(loading){ loading.style.display="flex"; loading.style.opacity="1"; }
-if(iframe) iframe.style.opacity = "0";
+  try { localStorage.setItem("prima_prefill_name", (_lastStatus && _lastStatus.name) || ""); } catch(e) {}
 
-// Update loading subtitle with patient name
-var loadSub = document.getElementById("saringan-load-sub");
-if(loadSub && _lastStatus && _lastStatus.name){
-  loadSub.textContent = "Selamat datang, " + _lastStatus.name + " 👋";
-}
+  // Open in a real tab — Google's login/consent flow can't render in an iframe
+  window.open(url, "_blank");
 
-_startSaringanLoadingMessages();
-iframe.src = url;
-    console.log("[SARINGAN] iframe src set:", url.replace(/token=[^&]+/, "token=REDACTED"));
-  }
+  showToast("calling",
+    "🧠 Saringan Dibuka",
+    "Sila lengkapkan dalam tab baharu. Kami akan kemaskini di sini secara automatik."
+  );
 
-  document.getElementById("saringan-num").textContent =
-    document.getElementById("badge-num").textContent;
-  document.getElementById("saringan-overlay").classList.add("open");
-  window._saringanPaused = false;
   startSaringanWatcher();
 }
+
 function closeSaringan() {
   window._saringanPaused = true;
   document.getElementById('saringan-overlay').classList.remove('open');
