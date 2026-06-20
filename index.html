@@ -1207,7 +1207,7 @@ body {
   <iframe id="saringan-iframe" src=""
     style="flex:1;border:none;width:100%;opacity:0;transition:opacity .4s ease;"
     allow="camera;microphone"
-    onload="onSaringanIframeLoad()">
+      onload="if(window.onSaringanIframeLoad) onSaringanIframeLoad()">
   </iframe>
 </div>
 
@@ -1350,12 +1350,17 @@ window.addEventListener("load", function(){
   // ADD before the saved queue restore block:
 var savedClinicId = localStorage.getItem("prima_clinic_id");
 if(savedClinicId){
-  var savedClinic = CLINICS.filter(function(c){ return c.id === savedClinicId; })[0];
+  var savedClinic = null;
+  HIERARCHY.forEach(function(s){
+    s.districts.forEach(function(d){
+      d.clinics.forEach(function(c){
+        if(c.id === savedClinicId) savedClinic = c;
+      });
+    });
+  });
   if(savedClinic){
     _selectedClinic = savedClinic;
-    document.querySelector(".brand-sub").textContent =
-      savedClinic.name + " · " + savedClinic.zone;
-    // Skip clinic screen — go directly to input
+    document.querySelector(".brand-sub").textContent = savedClinic.name;
     document.getElementById("screen-clinic").classList.remove("active");
     document.getElementById("screen-input").classList.add("active");
   }
@@ -2057,7 +2062,7 @@ window._saringanDone = false;
 window._saringanPaused = false;
   function fetchQueuePrefill(qnum) {
   console.log("[PREFILL] Fetching prefill for qnum:", qnum);
-  var url = GAS_URL + "?action=getQueuePrefill&qnum=" + encodeURIComponent(qnum);
+var url = (_selectedClinic ? _selectedClinic.url : "") + "?action=getQueuePrefill&qnum=" + encodeURIComponent(qnum);
   fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) {
