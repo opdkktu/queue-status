@@ -889,8 +889,29 @@ body {
   0%,60%,100% { transform:translateY(0); opacity:.5; }
   30%         { transform:translateY(-4px); opacity:1; }
 }
-
-
+.select-step { display:flex; flex-direction:column; gap:6px; }
+.step-label {
+  font-size:10px; font-weight:700; letter-spacing:.18em;
+  color:var(--text3); text-transform:uppercase;
+}
+.hier-select {
+  width:100%; padding:14px 16px;
+  background:var(--glass);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  color:var(--text1);
+  font-family:var(--sans); font-size:14px; font-weight:500;
+  outline:none; cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(240,246,255,.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  padding-right:36px;
+  transition:border-color .2s;
+}
+.hier-select:focus { border-color:var(--accent); }
+.hier-select option { background:#0F2040; color:var(--text1); }
+#saringan-overlay { position: relative; }
 </style>
 </head>
 <body>
@@ -933,11 +954,47 @@ body {
 <section class="screen active" id="screen-clinic">
   <div class="input-hero" style="margin-bottom:24px;">
     <img src="prima.png" alt="PRIMA"
-      style="width:80px;height:80px;object-fit:contain;border-radius:14px;margin-bottom:16px;animation:iconBob 3s ease-in-out infinite;">
+      style="width:80px;height:80px;object-fit:contain;border-radius:14px;
+      margin-bottom:16px;animation:iconBob 3s ease-in-out infinite;">
     <h1>Pilih <span>Klinik</span></h1>
-    <p>Pilih klinik anda untuk menyemak status giliran</p>
+    <p>Pilih lokasi untuk menyemak status giliran anda</p>
   </div>
-  <div id="clinic-list" style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;"></div>
+
+  <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- Step 1: State -->
+    <div class="select-step" id="step-state">
+      <div class="step-label">Negeri</div>
+      <select class="hier-select" id="sel-state" onchange="onStateChange(this.value)">
+        <option value="">— Pilih Negeri —</option>
+      </select>
+    </div>
+
+    <!-- Step 2: District -->
+    <div class="select-step" id="step-district" style="display:none;">
+      <div class="step-label">Daerah</div>
+      <select class="hier-select" id="sel-district" onchange="onDistrictChange(this.value)">
+        <option value="">— Pilih Daerah —</option>
+      </select>
+    </div>
+
+    <!-- Step 3: Clinic -->
+    <div class="select-step" id="step-clinic-sel" style="display:none;">
+      <div class="step-label">Klinik</div>
+      <select class="hier-select" id="sel-clinic" onchange="onClinicChange(this.value)">
+        <option value="">— Pilih Klinik —</option>
+      </select>
+    </div>
+
+    <!-- Confirm button -->
+    <button class="btn-submit" id="btn-confirm-clinic"
+      style="display:none;margin-top:4px;"
+      onclick="confirmClinicSelection()">
+      <span>✓</span>
+      <span>Teruskan</span>
+    </button>
+
+  </div>
 </section>
   <!-- ══ SCREEN: INPUT ══ -->
   <section class="screen" id="screen-input">
@@ -983,7 +1040,7 @@ body {
   <div>
     <strong>Tambah ke Skrin Utama</strong><br>
     Selepas benarkan notifikasi, ikon PRIMA akan muncul.<br>
-    <span id="install-ios-hint">iOS: ketik <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
+    <span id="install-ios-hint">iOS: click <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
   </div>
   <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
 </div>
@@ -1091,9 +1148,66 @@ body {
     <div class="s-title">🧠 Saringan Kesihatan Mental</div>
     <button class="btn-close-saringan" onclick="closeSaringan()">✕ Tutup</button>
   </div>
+
+  <!-- ADD THIS loading overlay inside saringan: -->
+  <div id="saringan-loading" style="
+    position:absolute;inset:0;top:52px;
+    background:var(--bg);
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:20px;
+    z-index:10;transition:opacity .5s ease;
+  ">
+    <div style="position:relative;width:100px;height:100px;
+      display:flex;align-items:center;justify-content:center;">
+      <!-- Outer ring -->
+      <div style="position:absolute;width:100px;height:100px;
+        border-radius:50%;border:3px solid rgba(139,92,246,.15);
+        border-top:3px solid var(--purple);border-right:3px solid var(--accent2);
+        animation:spin 1s linear infinite;"></div>
+      <!-- Middle ring -->
+      <div style="position:absolute;width:72px;height:72px;
+        border-radius:50%;border:2px solid rgba(139,92,246,.1);
+        border-bottom:2px solid var(--purple);
+        animation:spin 1.5s linear infinite reverse;"></div>
+      <!-- Brain icon -->
+      <div style="font-size:32px;z-index:2;">🧠</div>
+    </div>
+
+    <div style="text-align:center;">
+      <div style="font-size:15px;font-weight:700;color:var(--text1);
+        margin-bottom:6px;" id="saringan-load-title">
+        Memuatkan Saringan...
+      </div>
+      <div style="font-size:12px;color:var(--text3);
+        line-height:1.6;max-width:240px;" id="saringan-load-sub">
+        Sila tunggu sebentar
+      </div>
+    </div>
+
+    <!-- Animated progress dots -->
+    <div style="display:flex;gap:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;
+        background:var(--purple);animation:typingBob .9s ease-in-out infinite;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;
+        background:var(--accent2);animation:typingBob .9s ease-in-out infinite;
+        animation-delay:.2s;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;
+        background:var(--accent);animation:typingBob .9s ease-in-out infinite;
+        animation-delay:.4s;"></div>
+    </div>
+
+    <!-- Motivational message cycling -->
+    <div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);
+      border-radius:12px;padding:12px 16px;max-width:280px;text-align:center;
+      font-size:12px;color:#C4B5FD;line-height:1.6;" id="saringan-load-msg">
+      💬 Saringan ini mengambil masa kurang dari 5 minit
+    </div>
+  </div>
+
   <iframe id="saringan-iframe" src=""
-    style="flex:1;border:none;width:100%;"
-    allow="camera;microphone">
+    style="flex:1;border:none;width:100%;opacity:0;transition:opacity .4s ease;"
+    allow="camera;microphone"
+    onload="onSaringanIframeLoad()">
   </iframe>
 </div>
 
@@ -1119,24 +1233,37 @@ body {
 //  ★ CONFIG — UPDATE THESE
 // ══════════════════════════════════════════════════════
 
-  var CLINICS = [
+  var HIERARCHY = [
   {
-    id    : "ayer-hitam",
-    name  : "Klinik Kesihatan Ayer Hitam",
-    short : "KK Ayer Hitam",
-    zone  : "PKD Kubang Pasu",
-    url   : "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec",
-    color : "#00C896"
+    state: "Kedah",
+    districts: [
+      {
+        district: "Kubang Pasu",
+        clinics: [
+          { id:"ayer-hitam",  name:"Klinik Kesihatan Ayer Hitam",  url:"https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec", color:"#00C896" },
+          { id:"pokok-sena",  name:"Klinik Kesihatan Pokok Sena",  url:"https://...exec", color:"#00A8FF" },
+          { id:"jitra",       name:"Klinik Kesihatan Jitra",        url:"https://...exec", color:"#8B5CF6" }
+        ]
+      },
+      {
+        district: "Kota Setar",
+        clinics: [
+          { id:"alor-setar",  name:"Klinik Kesihatan Alor Setar",  url:"https://...exec", color:"#F59E0B" }
+        ]
+      }
+    ]
   },
   {
-    id    : "pokok-sena",
-    name  : "Klinik Kesihatan Pokok Sena",
-    short : "KK Pokok Sena",
-    zone  : "PKD Kubang Pasu",
-    url   : "https://script.google.com/macros/s/YOUR_POKOK_SENA_ID/exec",
-    color : "#00A8FF"
-  },
-  // Add more clinics here — just id, name, url
+    state: "Perlis",
+    districts: [
+      {
+        district: "Kangar",
+        clinics: [
+          { id:"kangar",      name:"Klinik Kesihatan Kangar",       url:"https://...exec", color:"#EF4444" }
+        ]
+      }
+    ]
+  }
 ];
 
 var _selectedClinic = null; // set when patient picks a clinic
@@ -1193,40 +1320,7 @@ tickClock(); setInterval(tickClock, 1000);
 //  LOADING
 // ══════════════════════════════════════════════════════
 window.addEventListener("load", function(){
-  // Render clinic cards
-var clinicList = document.getElementById("clinic-list");
-CLINICS.forEach(function(c){
-  var btn = document.createElement("button");
-  btn.style.cssText = [
-    "width:100%","padding:16px 18px","border-radius:14px",
-    "border:1px solid rgba(255,255,255,.1)",
-    "background:var(--glass)","color:var(--text1)",
-    "font-family:var(--sans)","font-size:14px","font-weight:600",
-    "cursor:pointer","text-align:left",
-    "display:flex","align-items:center","gap:14px",
-    "transition:all .2s","backdrop-filter:blur(8px)"
-  ].join(";");
-  btn.innerHTML =
-    "<div style='width:10px;height:10px;border-radius:50%;background:"+c.color+";flex-shrink:0;'></div>"+
-    "<div>"+
-      "<div>"+c.name+"</div>"+
-      "<div style='font-size:11px;color:var(--text3);margin-top:2px;font-weight:400;'>"+c.zone+"</div>"+
-    "</div>"+
-    "<div style='margin-left:auto;font-size:18px;'>→</div>";
-
-  btn.addEventListener("click", function(){
-    selectClinic(c);
-  });
-  btn.addEventListener("mouseenter", function(){
-    this.style.borderColor = c.color;
-    this.style.background = "rgba(255,255,255,.07)";
-  });
-  btn.addEventListener("mouseleave", function(){
-    this.style.borderColor = "rgba(255,255,255,.1)";
-    this.style.background = "var(--glass)";
-  });
-  clinicList.appendChild(btn);
-});
+  initHierarchy();
   setTimeout(function(){
     var msg = document.getElementById("loader-subtext");
     if(msg){
@@ -1317,7 +1411,78 @@ function checkInstallHint(){
 // ══════════════════════════════════════════════════════
 // clinics functions
 // ══════════════════════════════════════════════════════
-function selectClinic(clinic){
+// ── POPULATE STATE DROPDOWN ON LOAD ──
+function initHierarchy(){
+  var sel = document.getElementById("sel-state");
+  HIERARCHY.forEach(function(s){
+    var opt = document.createElement("option");
+    opt.value = s.state; opt.textContent = s.state;
+    sel.appendChild(opt);
+  });
+}
+
+function onStateChange(stateVal){
+  // Reset district + clinic
+  var dSel = document.getElementById("sel-district");
+  var cSel = document.getElementById("sel-clinic");
+  dSel.innerHTML = "<option value=''>— Pilih Daerah —</option>";
+  cSel.innerHTML = "<option value=''>— Pilih Klinik —</option>";
+  document.getElementById("step-district").style.display = "none";
+  document.getElementById("step-clinic-sel").style.display = "none";
+  document.getElementById("btn-confirm-clinic").style.display = "none";
+
+  if(!stateVal) return;
+  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
+  if(!stateObj) return;
+
+  stateObj.districts.forEach(function(d){
+    var opt = document.createElement("option");
+    opt.value = d.district; opt.textContent = d.district;
+    dSel.appendChild(opt);
+  });
+  document.getElementById("step-district").style.display = "flex";
+}
+
+function onDistrictChange(distVal){
+  var cSel = document.getElementById("sel-clinic");
+  cSel.innerHTML = "<option value=''>— Pilih Klinik —</option>";
+  document.getElementById("step-clinic-sel").style.display = "none";
+  document.getElementById("btn-confirm-clinic").style.display = "none";
+
+  if(!distVal) return;
+  var stateVal = document.getElementById("sel-state").value;
+  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
+  if(!stateObj) return;
+  var distObj  = stateObj.districts.filter(function(d){ return d.district === distVal; })[0];
+  if(!distObj) return;
+
+  distObj.clinics.forEach(function(c){
+    var opt = document.createElement("option");
+    opt.value = c.id; opt.textContent = c.name;
+    cSel.appendChild(opt);
+  });
+  document.getElementById("step-clinic-sel").style.display = "flex";
+}
+
+function onClinicChange(clinicId){
+  document.getElementById("btn-confirm-clinic").style.display =
+    clinicId ? "flex" : "none";
+}
+
+function confirmClinicSelection(){
+  var stateVal = document.getElementById("sel-state").value;
+  var distVal  = document.getElementById("sel-district").value;
+  var clinicId = document.getElementById("sel-clinic").value;
+  if(!clinicId) return;
+
+  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
+  var distObj  = stateObj.districts.filter(function(d){ return d.district === distVal; })[0];
+  var clinic   = distObj.clinics.filter(function(c){ return c.id === clinicId; })[0];
+  if(!clinic) return;
+
+  selectClinic(clinic);
+}
+  function selectClinic(clinic){
   _selectedClinic = clinic;
 
   // Update header subtitle
@@ -1959,6 +2124,43 @@ window._saringanPaused = false;
     console.log("[PREFILL] Masked badge rendered");
   }
 }
+  var _saringanLoadMsgs = [
+  "💬 Saringan ini mengambil masa kurang dari 5 minit",
+  "🧠 Jawab dengan jujur untuk hasil yang tepat",
+  "💜 Kesihatan mental sama penting seperti kesihatan fizikal",
+  "✨ Tiada jawapan betul atau salah",
+  "🔒 Semua jawapan adalah sulit dan selamat"
+];
+var _saringanMsgIdx = 0;
+var _saringanMsgTimer = null;
+
+function _startSaringanLoadingMessages(){
+  _saringanMsgIdx = 0;
+  clearInterval(_saringanMsgTimer);
+  _saringanMsgTimer = setInterval(function(){
+    _saringanMsgIdx = (_saringanMsgIdx + 1) % _saringanLoadMsgs.length;
+    var el = document.getElementById("saringan-load-msg");
+    if(el){
+      el.style.opacity = "0";
+      setTimeout(function(){
+        el.textContent = _saringanLoadMsgs[_saringanMsgIdx];
+        el.style.opacity = "1";
+      }, 300);
+    }
+  }, 3000);
+}
+
+function onSaringanIframeLoad(){
+  // Iframe content loaded — fade out loading, show iframe
+  clearInterval(_saringanMsgTimer);
+  var loading = document.getElementById("saringan-loading");
+  var iframe  = document.getElementById("saringan-iframe");
+  if(loading){
+    loading.style.opacity = "0";
+    setTimeout(function(){ loading.style.display = "none"; }, 500);
+  }
+  if(iframe) iframe.style.opacity = "1";
+}
 function openSaringan() {
   console.log("[SARINGAN] Opening. Token present:", !!_saringanToken, "| Paused:", window._saringanPaused);
 
@@ -1985,7 +2187,20 @@ function openSaringan() {
 
   if (!window._saringanPaused) {
     try { localStorage.setItem("prima_prefill_name", (_lastStatus && _lastStatus.name) || ""); } catch(e) {}
-    document.getElementById("saringan-iframe").src = url;
+    var loading = document.getElementById("saringan-loading");
+    var iframe  = document.getElementById("saringan-iframe");
+    // Reset loading state
+if(loading){ loading.style.display="flex"; loading.style.opacity="1"; }
+if(iframe) iframe.style.opacity = "0";
+
+// Update loading subtitle with patient name
+var loadSub = document.getElementById("saringan-load-sub");
+if(loadSub && _lastStatus && _lastStatus.name){
+  loadSub.textContent = "Selamat datang, " + _lastStatus.name + " 👋";
+}
+
+_startSaringanLoadingMessages();
+iframe.src = url;
     console.log("[SARINGAN] iframe src set:", url.replace(/token=[^&]+/, "token=REDACTED"));
   }
 
