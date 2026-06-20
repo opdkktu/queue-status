@@ -1553,7 +1553,9 @@ function submitQueueNum(){
     OneSignalDeferred.push(async function(OneSignal) {
       try {
       // Wait for user to be ready
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(function(resolve){
+  setTimeout(resolve,1000);
+});
       var numStr = parseInt(_queueNum).toString();
       await OneSignal.User.addTag("queue_num", numStr);
       console.log("[PRIMA] Tag set OK: queue_num =", numStr);
