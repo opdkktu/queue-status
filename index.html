@@ -1777,7 +1777,7 @@ if(stage === "NURSE"|| stage === "DOCTOR"){
   } else if(isCur) {
     // Only show bubble when NURSE is the CURRENT stage
     var bubbleText = window._saringanBubbleRevealed
-      ? '💬 Bosan menunggu? Senang je — jom isi! 😊'
+      ? '👈click here. Bosan menunggu? Senang je — jom isi! 😊'
       : '<div class="typing-dots"><span></span><span></span><span></span></div>';
     saringanBtn = "<div style='margin-top:6px;'>" +
       "<button class='btn-saringan-minda' onclick='openSaringan()'>" +
@@ -1806,7 +1806,7 @@ if(stage === "NURSE"|| stage === "DOCTOR"){
   setTimeout(function(){
     var b = document.getElementById('saringan-chat-bubble');
     if(b){
-      b.innerHTML = '💬 👈click. Bosan menunggu? Senang je — jom isi! 😊';
+      b.innerHTML = '👈click here. Bosan menunggu? Senang je — jom isi! 😊';
       window._saringanBubbleRevealed = true;
     }
   }, 1800);
