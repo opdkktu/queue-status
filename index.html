@@ -1338,9 +1338,9 @@ window.addEventListener("load", function(){
 
   // Notification prompt — outside the 800ms timeout
   setTimeout(function(){
-    if(window.OneSignalDeferred){
-      OneSignalDeferred.push(async function(OneSignal){
-        await OneSignal.Notifications.requestPermission();
+    if(window.OneDeferred){
+      OneDeferred.push(async function(One){
+        await One.Notifications.requestPermission();
       });
     }
   }, 2000);
@@ -1505,6 +1505,7 @@ function confirmClinicSelection(){
   _selectedClinic = null;
   _queueNum = null;
   stopPolling();
+  clearQueueNotificationTag();
   localStorage.removeItem("prima_queue_num");
   localStorage.removeItem("prima_queue_time");
   localStorage.removeItem("prima_clinic_id");
@@ -1954,6 +1955,7 @@ function resetToInput(){
   stopPolling();
   localStorage.removeItem("prima_queue_num");
   localStorage.removeItem("prima_queue_time");
+  clearQueueNotificationTag();
   _queueNum = null;
   _calledNotified  = false;
   _standbyNotified = false;
@@ -1963,6 +1965,7 @@ function resetToInput(){
   if (ms) ms.remove();    
   window._saringanBubbleRevealed = false;
   window._saringanDone = false;  
+  clearQueueNotificationTag();
   document.getElementById("queue-input").value = "";
   document.getElementById("input-error").textContent = "";
   document.getElementById("screen-status").classList.remove("active");
@@ -2010,7 +2013,19 @@ function requestNotifPermission(){
     }
   });
 }
-
+function clearQueueNotificationTag(){
+  if(window.OneSignalDeferred){
+    OneSignalDeferred.push(async function(OneSignal){
+      try{
+        await OneSignal.User.removeTag("queue_num");
+        console.log("[PRIMA] OneSignal queue tag cleared");
+      }catch(e){
+        console.log("Remove tag failed", e);
+      }
+    });
+  }
+}
+  
 function updateNotifBtn(){
   var btn = document.getElementById("btn-notif");
   var card = document.getElementById("notif-card");
