@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="PRIMA Queue">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Semak status giliran anda di Klinik Kesihatan Ayer Hitam">
-<link rel="manifest" href="/manifest.json?v=1.03">
+<link rel="manifest" href="/manifest.json?v=1.04">
 <meta name="theme-color" content="#050D1A">
 <!-- PWA Icons (inline for GitHub hosting) -->
 <link rel="apple-touch-icon" href="data:prima.png">
@@ -1318,6 +1318,19 @@ tickClock(); setInterval(tickClock, 1000);
 // ══════════════════════════════════════════════════════
 window.addEventListener("load", function(){
   initHierarchy();
+  var savedDate = localStorage.getItem("prima_queue_date");
+var today = new Date().toISOString().slice(0, 10);
+if (savedDate && savedDate !== today) {
+  localStorage.removeItem("prima_queue_date");
+  localStorage.removeItem("prima_queue_num");
+  localStorage.removeItem("prima_queue_time");
+  if (window.OneSignalDeferred) {
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.User.removeTags(["queue_num", "queue_date"]);
+    });
+  }
+}
+localStorage.setItem("prima_queue_date", today);
   setTimeout(function(){
     var msg = document.getElementById("loader-subtext");
     if(msg){
@@ -1550,23 +1563,21 @@ function submitQueueNum(){
 
   _queueNum = parseInt(val);
   _calledNotified  = false;
-   
 // ---> ADD THIS NEW ONESIGNAL LINE HERE <---
   if (window.OneSignalDeferred) {
-    OneSignalDeferred.push(async function(OneSignal) {
-      try {
-      // Wait for user to be ready
-      await new Promise(function(resolve){
-  setTimeout(resolve,1000);
-});
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      await new Promise(function(resolve){ setTimeout(resolve, 1000); });
       var numStr = parseInt(_queueNum).toString();
+      var today = new Date().toISOString().slice(0, 10);
       await OneSignal.User.addTag("queue_num", numStr);
-      console.log("[PRIMA] Tag set OK: queue_num =", numStr);
+      await OneSignal.User.addTag("queue_date", today);  
+      console.log("[PRIMA] Tags set OK: queue_num =", numStr, "| queue_date =", today);
     } catch(e) {
       console.error("[PRIMA] Tag failed:", e);
     }
-    });
-  }
+  });
+}
 
      _standbyNotified = false;
   // Show loading state on button
