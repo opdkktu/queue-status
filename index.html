@@ -1301,6 +1301,7 @@ var _lastStatus    = null;
 var _toastTimer    = null;
 var _calledNotified  = false;
 var _standbyNotified = false;
+var _playerID = null;
 
 // ══════════════════════════════════════════════════════
 //  CLOCK
@@ -1348,6 +1349,21 @@ localStorage.setItem("prima_queue_date", today);
   },800);
 
   checkInstallHint();
+  // Capture OneSignal Player ID silently
+setTimeout(function(){
+  if(window.OneSignalDeferred){
+    OneSignalDeferred.push(async function(OneSignal){
+      try{
+        var id = await OneSignal.User.PushSubscription.id;
+        if(id){ 
+          _playerID = id;
+          localStorage.setItem("prima_player_id", id);
+          console.log("[PRIMA] Player ID:", id);
+        }
+      } catch(e){ console.warn("[PRIMA] Player ID fetch failed:", e); }
+    });
+  }
+}, 3000);
 
   // Notification prompt — outside the 800ms timeout
   setTimeout(function(){
@@ -1580,6 +1596,12 @@ function submitQueueNum(){
 }
 
      _standbyNotified = false;
+  localStorage.setItem("prima_queue_num", val);
+var pid = _playerID || localStorage.getItem("prima_player_id");
+if(pid){
+  fetch(GAS_URL + "?action=savePlayerID&num=" + encodeURIComponent(val) + "&pid=" + encodeURIComponent(pid))
+    .catch(function(){});
+}
   // Show loading state on button
   var btn = document.getElementById("btn-check");
   btn.disabled = true;
