@@ -1802,6 +1802,17 @@ if(stage === "DOCTOR" && cp.calledBy){
 var timeHtml = cp.calledAt
   ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
   : "";
+
+// TCA medicine reminder badge
+var medBadge = "";
+if(stage === "TCA" && data.medicineReminder){
+  medBadge = "<div style='margin-top:6px;display:inline-flex;align-items:center;gap:6px;" +
+    "padding:5px 10px;border-radius:20px;" +
+    "background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);'>" +
+    "<span style='font-size:13px;'>💊</span>" +
+    "<span style='font-size:11px;font-weight:600;color:var(--accent);'>Peringatan ubat bermula esok</span>" +
+    "</div>";
+}
 var saringanBtn = "";
 if(stage === "NURSE"|| stage === "DOCTOR"){
   if(window._saringanDone){
@@ -1825,7 +1836,7 @@ if(stage === "NURSE"|| stage === "DOCTOR"){
       "<div class='station-body'>" +
         "<div class='station-name'>" + lbl.name + "</div>" +
         "<div class='station-meta'>" + timeHtml + badge + "</div>" +
-       saringanBtn +
+       medBadge +saringanBtn +
       "</div>" +
     "</div>";
   }).join("");
