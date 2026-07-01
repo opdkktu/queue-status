@@ -1598,8 +1598,8 @@ function submitQueueNum(){
      _standbyNotified = false;
   localStorage.setItem("prima_queue_num", val);
 var pid = _playerID || localStorage.getItem("prima_player_id");
-if(pid){
-  fetch(GAS_URL + "?action=savePlayerID&num=" + encodeURIComponent(val) + "&pid=" + encodeURIComponent(pid))
+if(pid && _selectedClinic){
+  fetch(_selectedClinic.url + "?action=savePlayerID&num=" + encodeURIComponent(val) + "&pid=" + encodeURIComponent(pid))
     .catch(function(){});
 }
   // Show loading state on button
