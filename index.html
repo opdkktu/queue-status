@@ -2036,11 +2036,30 @@ function requestNotifPermission(){
     if(_notifGranted){
        if(window.OneSignalDeferred){
     OneSignalDeferred.push(async function(OneSignal){
-      await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
+      try{
+        // Add queue tag
+        await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
+        
+        // Re-capture Player ID now that permission is granted
+        var id = await OneSignal.User.PushSubscription.id;
+        if(id){
+          _playerID = id;
+          localStorage.setItem("prima_player_id", id);
+          console.log("[PRIMA] Player ID refreshed after permission:", id);
+          // Resave to GAS with current queue number
+          if(_queueNum){
+            fetch(_selectedClinic.url + "?action=savePlayerID&num=" +
+              encodeURIComponent(_queueNum) + "&pid=" + encodeURIComponent(id))
+              .catch(function(){});
+          }
+        }
+      } catch(e){
+        console.warn("[PRIMA] Post-permission capture failed:", e);
+      }
     });
-       }
-      showToast("calling","✅ Notifikasi Dibenarkan",
-        "Anda akan diberitahu walaupun apl ditutup");
+  }
+  showToast("calling","✅ Notifikasi Dibenarkan",
+    "Anda akan diberitahu walaupun apl ditutup");
 
       // Trigger Add to Home Screen prompt if available
       if(window._deferredPrompt){
