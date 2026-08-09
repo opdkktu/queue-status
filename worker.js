@@ -5,8 +5,8 @@ const url = new URL(request.url);
 const CLINICS = {
   "ayer-hitam":
   "https://script.google.com/macros/s/AKfycbwNHjoocayxuLE7YfoE36R_u3M0VAvnW-qWDEF-RDXkEGZwzUjutvQeHvQHidXG_c59vQ/exec",
-  "jitra":
-  "https://script.google.com/macros/s/JITRA_GAS_URL_HERE/exec",
+  "mahang":
+  "https://script.google.com/macros/s/AKfycbzmyiAkN3dkHkgfU38uBRFbVH9qbnkCQ_oEteqF5wmvZViR1ixTpmXsbD3PneEJCNgY/exec",
   "pokok-sena":
   "https://script.google.com/macros/s/POKOK_SENA_GAS_URL_HERE/exec"
 };
