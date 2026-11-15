@@ -1,2373 +1,3704 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#050D1A">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PRIMA Queue">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Semak status giliran anda di Klinik Kesihatan Ayer Hitam">
-<link rel="manifest" href="/manifest.json?v=1.05">
-<meta name="theme-color" content="#050D1A">
-<!-- PWA Icons (inline for GitHub hosting) -->
-<link rel="apple-touch-icon" href="data:prima.png">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>PRIMA — Semak Giliran</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "6aa5fe5d-9596-45ef-a783-da4a81cf9cf6",
-      safari_web_id: "web.onesignal.auto.5ccade99-0f35-4775-9ae0-5e2c3bfd110b",
-      notifyButton: {
-        enable: true,
-      },
-    });
-  });
-</script>
+<title>Welcome Screen</title>
+
+<!-- Free peer-to-peer CCTV: PeerJS cloud (signalling) + Google STUN -->
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+
 <style>
-/* ══════════════════════════════════════════
-   CSS VARIABLES
-══════════════════════════════════════════ */
-:root {
-  --bg:       #050D1A;
-  --bg1:      #0A1628;
-  --bg2:      #0F2040;
-  --glass:    rgba(255,255,255,.04);
-  --glass2:   rgba(255,255,255,.08);
-  --border:   rgba(255,255,255,.08);
-  --border2:  rgba(255,255,255,.14);
-  --accent:   #00C896;
-  --accent2:  #00A8FF;
-  --amber:    #F59E0B;
-  --red:      #EF4444;
-  --purple:   #8B5CF6;
-  --text1:    #F0F6FF;
-  --text2:    rgba(240,246,255,.6);
-  --text3:    rgba(240,246,255,.3);
-  --mono:     "JetBrains Mono", monospace;
-  --sans:     "Sora", sans-serif;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bot: env(safe-area-inset-bottom, 0px);
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
 }
 
-/* ══════════════════════════════════════════
-   RESET + BASE
-══════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; -webkit-tap-highlight-color: transparent; }
-body {
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text1);
-  font-family: var(--sans);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bot);
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:
+  "Segoe UI",
+  "SF Pro Display",
+  sans-serif;
 }
 
-/* ══════════════════════════════════════════
-   ANIMATED BACKGROUND
-══════════════════════════════════════════ */
-.bg-canvas {
-  position: fixed; inset: 0; z-index: 0;
-  pointer-events: none; overflow: hidden;
-}
-.bg-orb {
-  position: absolute; border-radius: 50%;
-  filter: blur(80px); opacity: .18;
-  animation: orbFloat 12s ease-in-out infinite;
-}
-.bg-orb:nth-child(1) {
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, #00C896, transparent);
-  top: -200px; left: -200px;
-  animation-delay: 0s;
-}
-.bg-orb:nth-child(2) {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, #00A8FF, transparent);
-  bottom: -150px; right: -150px;
-  animation-delay: -4s;
-}
-.bg-orb:nth-child(3) {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, #8B5CF6, transparent);
-  top: 40%; left: 60%;
-  animation-delay: -8s; opacity: .1;
-}
-@keyframes orbFloat {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33%     { transform: translate(30px,-40px) scale(1.05); }
-  66%     { transform: translate(-20px,20px) scale(.95); }
-}
+/* =========================
+   IDLE SCREEN
+========================= */
 
-/* Grid overlay */
-.bg-grid {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    linear-gradient(rgba(0,200,150,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,200,150,.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
-}
+#idle{
+  position:fixed;
+  inset:0;
 
-/* ══════════════════════════════════════════
-   LAYOUT
-══════════════════════════════════════════ */
-.app {
-  position: relative; z-index: 1;
-  min-height: 100dvh;
-  display: flex; flex-direction: column;
-}
-
-/* ══════════════════════════════════════════
-   LOADING OVERLAY
-══════════════════════════════════════════ */
-#loading-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 24px;
-  transition: opacity .5s ease;
-}
-#loading-overlay.hide {
-  opacity: 0; pointer-events: none;
-}
-  .logo-loader{
-  position:relative;
-  width:120px;
-  height:120px;
   display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+
+  background:
+  radial-gradient(circle at center,
+  #111 0%,
+  #050505 45%,
+  #000 100%);
+}
+
+#clock{
+  font-size:9vw;
+  font-weight:100;
+  color:white;
+  letter-spacing:6px;
+
+  text-shadow:
+  0 0 px rgba(255,255,255,.08);
+
+  user-select:none;
+}
+
+#date{
+  margin-top:12px;
+  color:#888;
+  font-size:1.2vw;
+  letter-spacing:4px;
+}
+
+/* =========================
+   WELCOME SCREEN
+========================= */
+
+#welcomeScreen{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  background:black;
+
+  opacity:0;
+  visibility:hidden;
+
+  transition:
+  opacity .8s ease,
+  visibility .8s ease;
+
+  z-index:100;
+}
+
+#welcomeScreen.show{
+  opacity:1;
+  visibility:visible;
+}
+
+#welcomeImage{
+  max-width:85%;
+  max-height:85%;
+
+  transform:scale(.9);
+  transition:transform .8s ease;
+
+  filter:
+  drop-shadow(0 0 30px rgba(255,255,255,.15));
+}
+
+#welcomeScreen.show #welcomeImage{
+  transform:scale(1);
+}
+/* =========================
+   GENERAL ANNOUNCEMENT
+========================= */
+
+#announcementScreen{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  background:black;
+
+  opacity:0;
+  visibility:hidden;
+
+  transition:
+    opacity .5s ease,
+    visibility .5s ease;
+
+  z-index:10000;
+}
+
+#announcementScreen.show{
+  opacity:1;
+  visibility:visible;
+}
+
+#announcementImage{
+  max-width:90%;
+  max-height:90%;
+
+  object-fit:contain;
+
+  filter:
+    drop-shadow(0 0 35px rgba(255,255,255,.15));
+}
+/* =========================
+   CAMERA
+========================= */
+
+video{
+  position:fixed;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+#status{
+  position:fixed;
+  bottom:68px;
+  right:20px;
+
+  font-size:12px;
+  color:#555;
+
+  z-index:99999;
+}
+
+/* =========================
+   QR
+========================= */
+
+#qrPanel{
+  position:fixed;
+  top:40px;
+  right:40px;
+
+  transform:translateX(-50%);
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  gap:15px;
+  padding:0;
+
+  background:none;
+  backdrop-filter:blur(12px);
+
+  border:none;
+  border-radius:20px;
+}
+
+#qrCode{
+  width:220px;
+  height:220px;
+
+  background:white;
+  padding:12px;
+  border-radius:16px;
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,.4);
+}
+
+.qrTitle{
+  color:white;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:2px;
+}
+
+.qrSub{
+  color:#aaa;
+  margin-top:4px;
+  font-size:13px;
+}
+
+/* =========================
+   ANIMATED SCAN ARROW
+========================= */
+
+#scanArrow{
+  position:fixed;
+  top:270px;
+  right:120px;
+
+  pointer-events:none;
+  z-index:999;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+#scanArrow.announcementHidden{
+  display:none !important;
+}
+.scanLabel{
+
+  color:#ff3030;
+
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:3px;
+
+  margin-top:10px;
+
+  animation:
+    textBlink .6s infinite alternate;
+
+  text-shadow:
+    0 0 10px red,
+    0 0 20px red,
+    0 0 40px red;
+}
+
+#scanArrow svg{
+  overflow:visible;
+}
+
+#snakePath{
+  fill:none;
+
+  stroke:#ff2020;
+  stroke-width:6;
+  stroke-linecap:round;
+
+  marker-end:url(#arrowHead);
+
+  stroke-dasharray:12 12;
+
+  animation:
+    snakeMove .45s linear infinite;
+
+  filter:
+    drop-shadow(0 0 10px red)
+    drop-shadow(0 0 18px red);
+
+  mask:url(#trailMask);
+}
+
+#arrowHead{
+  animation:pulseArrow .8s infinite;
+}
+
+@keyframes textBlink {
+  from { opacity:.5; }
+  to   { opacity:1; }
+}
+
+/* =========================
+   BOTTOM SAFETY TICKER
+========================= */
+
+#ticker{
+  position:fixed;
+
+  left:0;
+  bottom:0;
+
+  width:100%;
+  height:48px;
+
+  background:rgba(0,0,0,.85);
+
+  border-top:2px solid #ffd400;
+
+  overflow:hidden;
+
+  z-index:9999;
+}
+
+#tickerText{
+  position:absolute;
+
+  white-space:nowrap;
+
+  color:#ffd400;
+
+  font-size:34px;
+  font-weight:700;
+
+  line-height:48px;
+
+  padding-left:100%;
+
+  text-shadow:
+    0 0 6px rgba(255,212,0,.7);
+
+  animation:
+    tickerMove 28s linear infinite;
+}
+
+@keyframes tickerMove{
+  from{
+    transform:translateX(0);
+  }
+
+  to{
+    transform:translateX(-100%);
+  }
+}
+/* ============================================================
+   PRIMA NIGHT MODE
+============================================================ */
+
+#nightMode{
+  position:fixed;
+  inset:0;
+
+  background:#000;
+
+  display:none;
+
+  z-index:999999;
+
   align-items:center;
   justify-content:center;
+
+  flex-direction:column;
+
+  color:#111;
+
+  pointer-events:none;
 }
 
-.loader-logo-img{
-  width:80px;
-  height:80px;
+#nightMode.active{
+  display:flex;
+}
+
+#nightModeStatus{
+  font-size:1px;
+  opacity:0;
+}
+
+body.night-mode{
+  background:#000 !important;
+}
+
+/* =========================
+   QR ANNOUNCEMENT
+========================= */
+
+#qrAnnouncementScreen{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:3vh;
+
+  background:black;
+
+  opacity:0;
+  visibility:hidden;
+
+  transition:
+    opacity .5s ease,
+    visibility .5s ease;
+
+  z-index:10001;
+}
+
+#qrAnnouncementScreen.show{
+  opacity:1;
+  visibility:visible;
+}
+
+#qrAnnouncementImage{
+  width:min(72vh,80vw);
+  height:min(72vh,80vw);
+
   object-fit:contain;
-  border-radius:18px;
-  z-index:2;
+  image-rendering:pixelated;
+
+  background:white;
+  padding:2.5vh;
+  border-radius:24px;
+
+  box-shadow:
+    0 0 60px rgba(255,255,255,.18);
 }
 
-.loader-ring{
-  position:absolute;
-  width:120px;
-  height:120px;
-  border-radius:50%;
-  border:4px solid rgba(255,255,255,.1);
-  border-top:4px solid var(--accent);
-  border-right:4px solid var(--accent2);
-  animation:spin 1s linear infinite;
-}
-
-.loader-text{
-  margin-top:24px;
-  font-size:16px;
+#qrAnnouncementText{
+  color:white;
+  font-size:max(3vh,22px);
   font-weight:700;
-  color:var(--text1);
+  letter-spacing:3px;
+  text-align:center;
+
+  animation:
+    textBlink .8s infinite alternate;
 }
 
-.loader-subtext{
-  margin-top:8px;
-  font-size:12px;
-  color:var(--text3);
+/* =========================
+   NIGHT HEARTBEAT
+========================= */
+
+#nightPulse{
+  color:#2a2a2a;
+  font-size:4vw;
+  font-weight:100;
+  letter-spacing:6px;
+
+  opacity:0;
+  transition:opacity 1s ease;
+
+  user-select:none;
 }
 
-@keyframes spin{
-  from{transform:rotate(0deg);}
-  to{transform:rotate(360deg);}
+#nightPulse.on{
+  opacity:1;
 }
-  .logo-loader::before{
-  content:"";
-  position:absolute;
-  width:90px;
-  height:90px;
-  border-radius:50%;
-  background:rgba(0,200,150,.25);
-  filter:blur(20px);
-  animation:pulseGlow 2s ease-in-out infinite;
-}
-
-@keyframes pulseGlow{
-  0%,100%{
-    transform:scale(1);
-    opacity:.4;
-  }
-  50%{
-    transform:scale(1.2);
-    opacity:.8;
-  }
-}
-/* ══════════════════════════════════════════
-   HEADER
-══════════════════════════════════════════ */
-.app-header {
-  padding: 20px 20px 0;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.brand {
-  display: flex; align-items: center; gap: 10px;
-}
-.brand-icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: linear-gradient(135deg, #0A2A1E, #0F4030);
-  border: 1px solid rgba(0,200,150,.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-.brand-name {
-  font-size: 11px; font-weight: 700;
-  letter-spacing: .2em; color: var(--accent);
-  text-transform: uppercase;
-}
-.brand-sub {
-  font-size: 9px; color: var(--text3);
-  letter-spacing: .1em; margin-top: 1px;
-}
-.header-time {
-  font-family: var(--mono);
-  font-size: 13px; font-weight: 500;
-  color: var(--text3); letter-spacing: .06em;
-}
-
-/* ══════════════════════════════════════════
-   SCREENS
-══════════════════════════════════════════ */
-.screen {
-  display: none; flex: 1;
-  flex-direction: column;
-  padding: 0 20px 40px;
-  animation: screenIn .4s cubic-bezier(.34,1.2,.64,1) both;
-}
-.screen.active { display: flex; }
-@keyframes screenIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ══════════════════════════════════════════
-   INPUT SCREEN
-══════════════════════════════════════════ */
-#screen-input {
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding-top: 20px;
-}
-
-.input-hero {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.input-hero-icon {
-  font-size: 56px; line-height: 1;
-  margin-bottom: 20px;
-  animation: iconBob 3s ease-in-out infinite;
-}
-@keyframes iconBob {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-6px); }
-}
-.input-hero h1 {
-  font-size: 26px; font-weight: 800;
-  letter-spacing: -.02em; line-height: 1.2;
-  margin-bottom: 10px;
-}
-.input-hero h1 span { color: var(--accent); }
-.input-hero p {
-  font-size: 13px; color: var(--text2);
-  line-height: 1.6; max-width: 280px; margin: 0 auto;
-}
-
-/* Number input box */
-.input-card {
-  width: 100%; max-width: 360px;
-  background: var(--glass);
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-  padding: 28px 24px;
-  backdrop-filter: blur(12px);
-  margin-bottom: 16px;
-}
-.input-label {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: .2em; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 14px;
-}
-.num-field-wrap {
-  position: relative; margin-bottom: 20px;
-}
-.num-field {
-  width: 100%;
-  background: rgba(0,200,150,.05);
-  border: 2px solid rgba(0,200,150,.2);
-  border-radius: 12px;
-  padding: 18px 20px;
-  font-family: var(--mono);
-  font-size: 32px; font-weight: 700;
-  color: var(--text1);
-  text-align: center;
-  letter-spacing: .2em;
-  outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  caret-color: var(--accent);
-}
-.num-field:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(0,200,150,.12);
-}
-.num-field::placeholder {
-  color: var(--text3); font-size: 18px;
-  letter-spacing: .1em;
-}
-.num-field-hint {
-  font-size: 11px; color: var(--text3);
-  text-align: center; margin-top: 8px;
-}
-
-/* Submit button */
-.btn-submit {
-  width: 100%;
-  padding: 17px;
-  border-radius: 14px;
-  border: none;
-  background: linear-gradient(135deg, #008F6A, #00C896);
-  color: #fff;
-  font-family: var(--sans);
-  font-size: 15px; font-weight: 700;
-  letter-spacing: .06em;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  transition: all .2s;
-  position: relative; overflow: hidden;
-}
-.btn-submit::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
-  opacity: 0; transition: opacity .2s;
-}
-.btn-submit:hover::before { opacity: 1; }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,200,150,.4); }
-.btn-submit:active { transform: translateY(0); }
-.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
-.btn-submit-icon { font-size: 18px; }
-
-/* Error message */
-.input-error {
-  font-size: 12px; color: var(--red);
-  text-align: center; min-height: 18px;
-  margin-top: 4px;
-  animation: errShake .3s ease;
-}
-@keyframes errShake {
-  0%,100% { transform: translateX(0); }
-  25%     { transform: translateX(-6px); }
-  75%     { transform: translateX(6px); }
-}
-
-/* PWA install hint */
-.install-hint {
-  width: 100%; max-width: 360px;
-  background: rgba(0,168,255,.06);
-  border: 1px solid rgba(0,168,255,.18);
-  border-radius: 14px;
-  padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px;
-  font-size: 12px; color: var(--text2);
-  line-height: 1.5;
-}
-.install-hint-icon { font-size: 22px; flex-shrink: 0; }
-.install-hint strong { color: var(--accent2); }
-.install-hint-close {
-  margin-left: auto; background: none; border: none;
-  color: var(--text3); font-size: 16px; cursor: pointer;
-  flex-shrink: 0; padding: 0 4px;
-}
-
-/* ══════════════════════════════════════════
-   STATUS SCREEN
-══════════════════════════════════════════ */
-#screen-status {
-  gap: 0;
-  padding-top: 16px;
-}
-
-/* Patient badge */
-.patient-badge {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 18px;
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 20px;
-}
-.patient-num {
-  font-family: var(--mono);
-  font-size: 28px; font-weight: 700;
-  color: var(--accent); line-height: 1;
-}
-.patient-info { flex: 1; }
-.patient-label {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: .18em; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 2px;
-}
-.patient-series {
-  font-size: 12px; color: var(--text2);
-}
-.btn-reset {
-  background: none; border: 1px solid var(--border2);
-  border-radius: 8px; color: var(--text3);
-  font-size: 11px; padding: 6px 12px; cursor: pointer;
-  font-family: var(--sans);
-  transition: all .18s;
-}
-.btn-reset:hover { border-color: var(--accent); color: var(--accent); }
-
-/* ── CHECKPOINT TRAIN ── */
-.checkpoint-section {
-  margin-bottom: 24px;
-}
-.section-title {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: .2em; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 16px;
-}
-
-.train-track {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* Vertical line connecting stations */
-.train-track::before {
-  content: "";
-  position: absolute;
-  left: 23px; top: 24px;
-  width: 2px;
-  height: calc(100% - 48px);
-  background: var(--border2);
-  z-index: 0;
-}
-
-.station {
-  display: flex; align-items: flex-start; gap: 16px;
-  padding: 12px 0;
-  position: relative; z-index: 1;
-  animation: stationIn .4s cubic-bezier(.34,1.2,.64,1) both;
-}
-.station:nth-child(1) { animation-delay: .05s; }
-.station:nth-child(2) { animation-delay: .12s; }
-.station:nth-child(3) { animation-delay: .19s; }
-.station:nth-child(4) { animation-delay: .26s; }
-@keyframes stationIn {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-/* Station dot */
-.station-dot {
-  width: 48px; height: 48px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-  position: relative; transition: all .3s;
-  border: 2px solid var(--border2);
-  background: var(--bg1);
-}
-.station.attended .station-dot {
-  background: rgba(0,200,150,.15);
-  border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(0,200,150,.2);
-}
-.station.current .station-dot {
-  background: rgba(0,168,255,.15);
-  border-color: var(--accent2);
-  box-shadow: 0 0 20px rgba(0,168,255,.3);
-  animation: currentPulse 2s ease-in-out infinite;
-}
-.station.pending .station-dot {
-  opacity: .4;
-}
-@keyframes currentPulse {
-  0%,100% { box-shadow: 0 0 20px rgba(0,168,255,.3); }
-  50%     { box-shadow: 0 0 36px rgba(0,168,255,.6), 0 0 60px rgba(0,168,255,.2); }
-}
-
-/* Progress line fill */
-.station-line-fill {
-  position: absolute;
-  left: 23px; top: 0;
-  width: 2px; height: 0;
-  background: linear-gradient(to bottom, var(--accent), var(--accent2));
-  z-index: 0;
-  transition: height .8s cubic-bezier(.4,0,.2,1);
-}
-
-.station-body { flex: 1; padding-top: 6px; }
-.station-name {
-  font-size: 14px; font-weight: 700;
-  color: var(--text2);
-  transition: color .3s;
-}
-.station.current .station-name { color: var(--text1); }
-.station.attended .station-name { color: var(--accent); }
-.station.pending .station-name { color: var(--text3); }
-
-.station-meta {
-  font-size: 11px; color: var(--text3);
-  margin-top: 3px; display: flex; gap: 10px; align-items: center;
-}
-.station-time {
-  font-family: var(--mono); font-size: 11px;
-  color: var(--accent); font-weight: 500;
-}
-.station-badge {
-  font-size: 9px; font-weight: 700;
-  padding: 2px 8px; border-radius: 10px;
-  letter-spacing: .08em; text-transform: uppercase;
-}
-.badge-attended {
-  background: rgba(0,200,150,.15); color: var(--accent);
-}
-.badge-current {
-  background: rgba(0,168,255,.15); color: var(--accent2);
-  animation: badgePulse 1.5s ease-in-out infinite;
-}
-@keyframes badgePulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
-.badge-pending {
-  background: rgba(255,255,255,.05); color: var(--text3);
-}
-
-/* ── CURRENT NUMBER DISPLAY ── */
-.current-call-card {
-  background: linear-gradient(135deg, rgba(0,200,150,.08), rgba(0,168,255,.06));
-  border: 1px solid rgba(0,200,150,.2);
-  border-radius: 20px;
-  padding: 24px 20px;
-  text-align: center;
-  margin-bottom: 16px;
-  position: relative; overflow: hidden;
-}
-.current-call-card::before {
-  content: "";
-  position: absolute; top: -60px; right: -60px;
-  width: 180px; height: 180px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,200,150,.12), transparent);
-  pointer-events: none;
-}
-.call-lbl {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: .2em; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 10px;
-}
-.call-num-big {
-  font-family: var(--mono);
-  font-size: 64px; font-weight: 700;
-  color: var(--accent); line-height: 1;
-  letter-spacing: .06em;
-  text-shadow: 0 0 40px rgba(0,200,150,.4);
-  animation: numGlow 3s ease-in-out infinite;
-}
-@keyframes numGlow {
-  0%,100% { text-shadow: 0 0 40px rgba(0,200,150,.4); }
-  50%     { text-shadow: 0 0 60px rgba(0,200,150,.7), 0 0 100px rgba(0,200,150,.2); }
-}
-.call-num-big.flip {
-  animation: numFlip .4s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes numFlip {
-  0%   { transform: rotateX(-90deg) scale(.8); opacity: 0; }
-  100% { transform: rotateX(0) scale(1); opacity: 1; }
-}
-.call-stage-lbl {
-  font-size: 12px; color: var(--text2);
-  margin-top: 6px;
-}
-
-/* ── WAIT ESTIMATE CARD ── */
-.wait-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 12px; margin-bottom: 16px;
-}
-.wait-cell {
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px 14px;
-  text-align: center;
-}
-.wait-cell-num {
-  font-family: var(--mono);
-  font-size: 30px; font-weight: 700;
-  line-height: 1; margin-bottom: 4px;
-}
-.wait-cell-num.green  { color: var(--accent); }
-.wait-cell-num.amber  { color: var(--amber); }
-.wait-cell-num.red    { color: var(--red); }
-.wait-cell-lbl {
-  font-size: 10px; color: var(--text3);
-  letter-spacing: .1em; text-transform: uppercase;
-}
-
-/* ── PROGRESS BAR ── */
-.progress-section { margin-bottom: 16px; }
-.progress-lbl {
-  display: flex; justify-content: space-between;
-  font-size: 11px; color: var(--text3);
-  margin-bottom: 8px;
-}
-.progress-track {
-  height: 6px; border-radius: 3px;
-  background: rgba(255,255,255,.08);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%; border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  transition: width 1s cubic-bezier(.4,0,.2,1);
-}
-
-/* ── NOTIFICATION CARD ── */
-.notif-card {
-  background: rgba(139,92,246,.08);
-  border: 1px solid rgba(139,92,246,.25);
-  border-radius: 14px;
-  padding: 16px;
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 16px;
-}
-.notif-icon { font-size: 24px; flex-shrink: 0; }
-.notif-body { flex: 1; }
-.notif-title {
-  font-size: 13px; font-weight: 600;
-  color: var(--text1); margin-bottom: 2px;
-}
-.notif-sub { font-size: 11px; color: var(--text3); line-height: 1.4; }
-.btn-notif {
-  background: rgba(139,92,246,.2);
-  border: 1px solid rgba(139,92,246,.4);
-  border-radius: 10px;
-  color: #C4B5FD;
-  font-size: 11px; font-weight: 700;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-family: var(--sans);
-  white-space: nowrap;
-  transition: all .18s;
-  flex-shrink: 0;
-}
-.btn-notif:hover { background: rgba(139,92,246,.35); }
-.btn-notif.granted {
-  background: rgba(0,200,150,.1);
-  border-color: rgba(0,200,150,.3);
-  color: var(--accent);
-}
-
-/* ── STANDBY ALERT TOAST ── */
-.alert-toast {
-  position: fixed;
-  bottom: calc(20px + var(--safe-bot));
-  left: 16px; right: 16px;
-  border-radius: 16px;
-  padding: 16px 18px;
-  display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.5);
-  z-index: 8888;
-  transform: translateY(120px);
-  opacity: 0;
-  transition: all .5s cubic-bezier(.34,1.3,.64,1);
-  pointer-events: none;
-}
-.alert-toast.show {
-  transform: translateY(0); opacity: 1;
-  pointer-events: auto;
-}
-.alert-toast.standby {
-  background: linear-gradient(135deg, #1C1010, #3D2A10);
-  border: 1px solid rgba(245,158,11,.45);
-}
-.alert-toast.calling {
-  background: linear-gradient(135deg, #0A2A1E, #0F4030);
-  border: 1px solid rgba(0,200,150,.5);
-  animation: callToastPulse .8s ease-in-out 6;
-}
-@keyframes callToastPulse {
-  0%,100% { border-color: rgba(0,200,150,.5); }
-  50%     { border-color: rgba(0,200,150,1); box-shadow: 0 0 40px rgba(0,200,150,.3); }
-}
-.toast-ico { font-size: 26px; flex-shrink: 0; }
-.toast-body2 { flex: 1; }
-.toast-title { font-size: 14px; font-weight: 700; color: var(--text1); }
-.toast-sub2 { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.toast-close {
-  background: none; border: none; color: var(--text3);
-  font-size: 20px; cursor: pointer; flex-shrink: 0;
-}
-
-/* ── REFRESH INDICATOR ── */
-.refresh-row {
-  display: flex; align-items: center; justify-content: center;
-  gap: 8px; font-size: 11px; color: var(--text3);
-  margin-top: 4px;
-}
-.refresh-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent);
-  animation: dotBlink 2s ease-in-out infinite;
-}
-@keyframes dotBlink { 0%,100%{opacity:.4;} 50%{opacity:1;} }
-
-/* ── CALLED SCREEN ── */
-#screen-called {
-  align-items: center; justify-content: center;
-  text-align: center; gap: 24px;
-  padding-top: 20px;
-}
-.called-icon {
-  font-size: 80px; line-height: 1;
-  animation: calledBounce .6s cubic-bezier(.34,1.56,.64,1) both;
-}
-@keyframes calledBounce {
-  from { transform: scale(0) rotate(-20deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0); opacity: 1; }
-}
-.called-num {
-  font-family: var(--mono);
-  font-size: 72px; font-weight: 700;
-  color: var(--accent);
-  text-shadow: 0 0 60px rgba(0,200,150,.6);
-  animation: numGlow 2s ease-in-out infinite;
-}
-.called-title {
-  font-size: 24px; font-weight: 800;
-  letter-spacing: -.02em;
-  margin-bottom: 8px;
-}
-.called-sub {
-  font-size: 14px; color: var(--text2);
-  line-height: 1.6; max-width: 280px;
-}
-.btn-back {
-  padding: 14px 32px; border-radius: 12px;
-  border: 1px solid var(--border2);
-  background: var(--glass); color: var(--text2);
-  font-family: var(--sans); font-size: 13px;
-  font-weight: 600; cursor: pointer;
-  transition: all .18s; margin-top: 8px;
-}
-.btn-back:hover { border-color: var(--accent); color: var(--accent); }
-
-/* ══════════════════════════════════════════
-   SERIES INDICATOR
-══════════════════════════════════════════ */
-.series-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 20px;
-  background: rgba(0,168,255,.1);
-  border: 1px solid rgba(0,168,255,.25);
-  font-size: 11px; font-weight: 600; color: var(--accent2);
-  letter-spacing: .06em;
-}
-
-/* ══════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════ */
-@media (min-width: 480px) {
-  #screen-input { padding: 40px 32px; }
-  .input-card { padding: 36px 32px; }
-}
-  #saringan-overlay {
-  display: none;
-  position: fixed; inset: 0; z-index: 5000;
-  background: var(--bg);
-  flex-direction: column;
-}
-#saringan-overlay.open { display: flex; }
-
-.saringan-bar {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg1);
-  border-bottom: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.saringan-bar .s-num {
-  font-family: var(--mono); font-size: 20px;
-  font-weight: 700; color: var(--accent);
-}
-.saringan-bar .s-title {
-  flex: 1; font-size: 13px; font-weight: 600; color: var(--text2);
-}
-.btn-close-saringan {
-  background: rgba(239,68,68,.15);
-  border: 1px solid rgba(239,68,68,.3);
-  border-radius: 8px; color: var(--red);
-  font-size: 12px; font-weight: 700;
-  padding: 7px 14px; cursor: pointer;
-  font-family: var(--sans);
-}
-
-/* Score summary card on status screen */
-.saringan-result-card {
-  background: rgba(0,200,150,.06);
-  border: 1px solid rgba(0,200,150,.25);
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  display: none;
-}
-.saringan-result-card.show { display: block; }
-.saringan-result-title {
-  font-size: 11px; font-weight: 700;
-  color: var(--accent); letter-spacing: .12em;
-  text-transform: uppercase; margin-bottom: 10px;
-  display: flex; align-items: center; gap: 6px;
-}
-.saringan-score-row {
-  display: flex; justify-content: space-between;
-  font-size: 12px; color: var(--text2);
-  padding: 4px 0; border-bottom: 1px solid var(--border);
-}
-.saringan-score-row:last-child { border-bottom: none; }
-.saringan-score-val { font-weight: 700; color: var(--text1); }
-  @keyframes saringanPulse {
-    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(139,92,246,.85); }
-  40%  { transform: scale(1.07); box-shadow: 0 0 0 8px rgba(139,92,246,0); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(139,92,246,0); }
-}
-.btn-saringan-minda {
-  animation: saringanPulse 1.4s cubic-bezier(.4,0,.6,1) infinite;
-  background: rgba(139,92,246,.2);
-  border: 1px solid rgba(139,92,246,.5);
-  border-radius: 10px;
-  color: #C4B5FD;
-  font-size: 11px; font-weight: 700;
-  padding: 6px 14px;
-  cursor: pointer;
-  font-family: var(--sans);
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.saringan-teaser {
-  font-size: 11px; color: var(--text3);
-  font-style: italic; margin-top: 4px;
-  line-height: 1.4;
-}
-  .chat-bubble {
-  display:inline-flex; align-items:center; gap:6px;
-  background:rgba(139,92,246,.15); border:1px solid rgba(139,92,246,.3);
-  border-radius:16px 16px 16px 4px; padding:8px 14px;
-  font-size:12px; color:#C4B5FD; margin-top:6px;
-  animation: bubbleIn .4s cubic-bezier(.34,1.2,.64,1) both;
-}
-@keyframes bubbleIn {
-  from { opacity:0; transform:translateY(6px) scale(.95); }
-  to   { opacity:1; transform:translateY(0) scale(1); }
-}
-.typing-dots span {
-  display:inline-block; width:5px; height:5px; border-radius:50%;
-  background:#C4B5FD; margin:0 1.5px;
-  animation: typingBob .9s ease-in-out infinite;
-}
-.typing-dots span:nth-child(2) { animation-delay:.15s; }
-.typing-dots span:nth-child(3) { animation-delay:.3s; }
-@keyframes typingBob {
-  0%,60%,100% { transform:translateY(0); opacity:.5; }
-  30%         { transform:translateY(-4px); opacity:1; }
-}
-.select-step { display:flex; flex-direction:column; gap:6px; }
-.step-label {
-  font-size:10px; font-weight:700; letter-spacing:.18em;
-  color:var(--text3); text-transform:uppercase;
-}
-.hier-select {
-  width:100%; padding:14px 16px;
-  background:var(--glass);
-  border:1px solid var(--border2);
-  border-radius:12px;
-  color:var(--text1);
-  font-family:var(--sans); font-size:14px; font-weight:500;
-  outline:none; cursor:pointer;
-  appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(240,246,255,.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;
-  background-position:right 14px center;
-  padding-right:36px;
-  transition:border-color .2s;
-}
-.hier-select:focus { border-color:var(--accent); }
-.hier-select option { background:#0F2040; color:var(--text1); }
-#saringan-overlay { position: relative; }
 </style>
 </head>
+
 <body>
+<!-- ============================================================
+     PRIMA NIGHT MODE
+============================================================ -->
 
-<!-- LOADING OVERLAY -->
-<div id="loading-overlay">
-  <div class="logo-loader">
-    <img src="prima.png" alt="PRIMA" class="loader-logo-img">
-    <div class="loader-ring"></div>
+<div id="nightMode">
+  <div id="nightModeStatus">NIGHT</div>
+  <div id="nightPulse">00:00</div>
+</div>
+<!-- =========================
+     IDLE SCREEN
+========================= -->
+
+<div id="idle">
+
+  <div id="clock">00:00:00</div>
+
+  <div id="date"></div>
+
+  <div id="qrPanel">
+
+    <img
+      src="qr.png"
+      id="qrCode"
+    >
+
   </div>
 
-  <div class="loader-text">Memuatkan Data...</div>
-  <div class="loader-subtext">
-    Sila tunggu sebentar
+</div>
+
+
+<!-- =========================
+     ANIMATED SCAN HERE ARROW
+========================= -->
+
+<div id="scanArrow">
+
+  <div class="scanLabel">
+    Semak Status Giliran Anda.
+  </div>
+
+  <svg
+    width="200"
+    height="750"
+    viewBox="0 0 200 750"
+  >
+
+    <defs>
+
+      <path
+        id="flightPath"
+        d="
+          M 100 700
+          C 100 230, 180 230, 180 150
+          C 180 50, 20 50, 20 150
+          C 20 250, 100 230, 170 10
+        "
+      />
+
+      <radialGradient id="fadeGrad">
+
+        <stop
+          offset="0%"
+          stop-color="white"
+          stop-opacity="1"
+        />
+
+        <stop
+          offset="35%"
+          stop-color="white"
+          stop-opacity="0.8"
+        />
+
+        <stop
+          offset="100%"
+          stop-color="white"
+          stop-opacity="0"
+        />
+      </radialGradient>
+      <mask id="trailMask">
+        <rect
+          width="100%"
+          height="100%"
+          fill="black"
+        />
+        <circle
+          r="90"
+          fill="url(#fadeGrad)"
+        >
+          <animateMotion
+            dur="2.5s"
+            repeatCount="indefinite"
+          >
+            <mpath href="#flightPath"/>
+          </animateMotion>
+        </circle>
+      </mask>
+    </defs>
+    <use
+      href="#flightPath"
+      id="snakePath"
+    />
+    <g
+      filter="
+        drop-shadow(0 0 10px red)
+        drop-shadow(0 0 18px red)
+      "
+    >
+      <polygon
+        points="-8,-6 8,0 -8,6"
+        fill="#ff3030"
+      >
+
+        <animateMotion
+          dur="2.5s"
+          repeatCount="indefinite"
+          rotate="auto"
+        >
+          <mpath href="#flightPath"/>
+        </animateMotion>
+      </polygon>
+    </g>
+  </svg>
+</div>
+<!-- =========================
+     WELCOME
+========================= -->
+
+<div id="welcomeScreen">
+  <img
+    id="welcomeImage"
+    src="welcome.png"
+  >
+</div>
+
+<!-- =========================
+     GENERAL ANNOUNCEMENT
+========================= -->
+
+<div id="announcementScreen">
+  <img
+    id="announcementImage"
+    src="nasihat1.jpg"
+  >
+</div>
+
+<!-- =========================
+     QR ANNOUNCEMENT
+========================= -->
+
+<div id="qrAnnouncementScreen">
+  <img
+    id="qrAnnouncementImage"
+    src="qr.png"
+    alt="QR code"
+  >
+  <div id="qrAnnouncementText">
+    Imbas QR untuk semak status giliran anda
   </div>
 </div>
 
-<!-- ANIMATED BACKGROUND -->
-<div class="bg-canvas">
-  <div class="bg-orb"></div>
-  <div class="bg-orb"></div>
-  <div class="bg-orb"></div>
-</div>
-<div class="bg-grid"></div>
+<audio
+  id="scanQrAudio"
+  src="scanqr.mp3"
+  preload="auto"
+></audio>
 
-<div class="app">
+<audio
+  id="announcementBell"
+  preload="auto"
+></audio>
 
-  <!-- HEADER -->
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-icon">🏥</div>
-      <div>
-        <div class="brand-name">Patient & Routine Integrated Management App (PRIMA)</div>
-        <div class="brand-sub">Klinik Kesihatan Ayer Hitam, PKD Kubang Pasu</div>
-      </div>
-    </div>
-    <div class="header-time" id="hdr-clock">--:--</div>
-  </header>
-<!-- ══ SCREEN: CLINIC SELECT ══ -->
-<section class="screen active" id="screen-clinic">
-  <div class="input-hero" style="margin-bottom:24px;">
-    <img src="prima.png" alt="PRIMA"
-      style="width:80px;height:80px;object-fit:contain;border-radius:14px;
-      margin-bottom:16px;animation:iconBob 3s ease-in-out infinite;">
-    <h1>Pilih <span>Klinik</span></h1>
-    <p>Pilih lokasi untuk menyemak status giliran anda</p>
-  </div>
+<audio
+  id="announcementAudio"
+  preload="auto"
+></audio>
+<!-- =========================
+     CAMERA
+========================= -->
 
-  <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;">
+<video
+  id="webcam"
+  autoplay
+  playsinline
+  muted
+></video>
 
-    <!-- Step 1: State -->
-    <div class="select-step" id="step-state">
-      <div class="step-label">Negeri</div>
-      <select class="hier-select" id="sel-state" onchange="onStateChange(this.value)">
-        <option value="">— Pilih Negeri —</option>
-      </select>
-    </div>
 
-    <!-- Step 2: District -->
-    <div class="select-step" id="step-district" style="display:none;">
-      <div class="step-label">Daerah</div>
-      <select class="hier-select" id="sel-district" onchange="onDistrictChange(this.value)">
-        <option value="">— Pilih Daerah —</option>
-      </select>
-    </div>
+<!-- =========================
+     WELCOME AUDIO
+========================= -->
 
-    <!-- Step 3: Clinic -->
-    <div class="select-step" id="step-clinic-sel" style="display:none;">
-      <div class="step-label">Klinik</div>
-      <select class="hier-select" id="sel-clinic" onchange="onClinicChange(this.value)">
-        <option value="">— Pilih Klinik —</option>
-      </select>
-    </div>
+<audio
+  id="welcomeAudio"
+  preload="auto"
+>
 
-    <!-- Confirm button -->
-    <button class="btn-submit" id="btn-confirm-clinic"
-      style="display:none;margin-top:4px;"
-      onclick="confirmClinicSelection()">
-      <span>✓</span>
-      <span>Teruskan</span>
-    </button>
+  <source
+    src="welcome.mp3"
+    type="audio/mpeg"
+  >
 
-  </div>
-</section>
-  <!-- ══ SCREEN: INPUT ══ -->
-  <section class="screen" id="screen-input">
-    <div class="input-hero">
-      <img src="prima.png" alt="PRIMA"
-        style="width:90px;height:90px;object-fit:contain;
-        border-radius:16px;margin-bottom:20px;
-        animation:iconBob 3s ease-in-out infinite;">
-      <h1>Semak <span>Giliran</span> Anda</h1>
-      <p>Masukkan nombor giliran untuk melihat status dan anggaran masa menunggu</p>
-    </div>
-
-    <div class="input-card">
-      <div class="input-label">Nombor Giliran</div>
-      <div class="num-field-wrap">
-        <input
-          type="tel"
-          id="queue-input"
-          class="num-field"
-          placeholder="contoh: 2006"
-          maxlength="4"
-          inputmode="numeric"
-          autocomplete="off"
-          autofocus>
-      </div>
-      <div class="num-field-hint">Masukkan 4 digit nombor giliran anda</div>
-      <div class="input-error" id="input-error"></div>
-    </div>
-<button onclick="resetToClinicSelect()"
-  style="margin-top:10px;background:none;border:none;color:var(--text3);
-  font-size:11px;cursor:pointer;font-family:var(--sans);text-decoration:underline;">
-  ← Tukar klinik
-</button>
-    <div style="width:100%;max-width:360px;">
-      <button class="btn-submit" id="btn-check" onclick="submitQueueNum()">
-        <span class="btn-submit-icon">🔍</span>
-        <span>Semak Status</span>
-      </button>
-    </div>
-
-    <div class="install-hint" id="install-hint" style="margin-top:20px;display:none;">
-  <span class="install-hint-icon">📱</span>
-  <div>
-    <strong>Tambah ke Skrin Utama</strong><br>
-    Selepas benarkan notifikasi, ikon PRIMA akan muncul.<br>
-    <span id="install-ios-hint">iOS: click <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
-  </div>
-  <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
-</div>
-  </section>
-
-  <!-- ══ SCREEN: STATUS ══ -->
-  <section class="screen" id="screen-status">
-
-    <!-- Patient badge -->
-    <div class="patient-badge" id="patient-badge">
-      <div class="patient-num" id="badge-num">—</div>
-      <div class="patient-info">
-        <div class="patient-label">Nombor Giliran Anda</div>
-        <div class="patient-series" id="badge-series">—</div>
-         <div id="badge-name" style="font-size:13px;font-weight:600;color:var(--accent);
-       margin-top:3px;display:none;"></div>
-      </div>
-      <button class="btn-reset" onclick="resetToInput()">← Tukar</button>
-    </div>
-
-    <!-- Checkpoint train -->
-    <div class="checkpoint-section">
-      <div class="section-title">Perjalanan Rawatan</div>
-      <div class="train-track" id="train-track">
-        <!-- Stations injected by JS -->
-      </div>
-    </div>
-
-    <!-- Current calling number -->
-    <div class="current-call-card">
-      <div class="call-lbl" id="call-stage-label">Nombor Semasa Dipanggil</div>
-      <div class="call-num-big" id="call-num-big">—</div>
-      <div class="call-stage-lbl" id="call-stage-name">—</div>
-    </div>
-
-    <!-- Wait estimate -->
-    <div class="wait-grid">
-      <div class="wait-cell">
-        <div class="wait-cell-num" id="cell-ahead">—</div>
-        <div class="wait-cell-lbl">Nombor Lagi</div>
-      </div>
-      <div class="wait-cell">
-        <div class="wait-cell-num" id="cell-wait">—</div>
-        <div class="wait-cell-lbl">Angg. Minit</div>
-      </div>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="progress-section">
-      <div class="progress-lbl">
-        <span>Kemajuan siri anda</span>
-        <span id="progress-pct">—</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
-      </div>
-    </div>
-    
-<!-- Saringan result summary -->
-<div class="saringan-result-card" id="saringan-result-card">
-  <div class="saringan-result-title">✅ Saringan Kesihatan Mental Selesai</div>
-  <div id="saringan-score-rows"></div>
-</div>
-    <!-- Notification request -->
-    <div class="notif-card" id="notif-card">
-      <div class="notif-icon">🔔</div>
-      <div class="notif-body">
-        <div class="notif-title">Notifikasi Giliran</div>
-        <div class="notif-sub">Benarkan notifikasi supaya anda diberi amaran apabila giliran menghampiri</div>
-      </div>
-      <button class="btn-notif" id="btn-notif" onclick="requestNotifPermission()">Benarkan</button>
-    </div>
-
-    <!-- Refresh indicator -->
-    <div class="refresh-row">
-      <div class="refresh-dot"></div>
-      <span>Dikemaskini setiap 30s · <span id="last-refresh">--:--:--</span></span>
-    </div>
-    
-    <div style="margin-bottom:16px;">
-  <button class="btn-submit" id="btn-saringan-status" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);"
-          onclick="openSaringan()">
-    <span>🧠</span>
-    <span>Saringan Kesihatan Mental</span>
-  </button>
-</div>
-
-  </section>
-
-  <!-- ══ SCREEN: CALLED ══ -->
-  <section class="screen" id="screen-called">
-    <div class="called-icon">🎉</div>
-    <div class="called-num" id="called-num-big">—</div>
-    <div>
-      <div class="called-title">Nombor Anda Dipanggil!</div>
-      <div class="called-sub" id="called-sub">Sila pergi ke kaunter yang ditetapkan sekarang</div>
-    </div>
-    <button class="btn-back" onclick="resetToInput()">← Semak Nombor Lain</button>
-  </section>
-
-  <!-- ══ SARINGAN OVERLAY ══ -->
-<div id="saringan-overlay">
-  <div class="saringan-bar">
-    <div class="s-num" id="saringan-num">—</div>
-    <div class="s-title">🧠 Saringan Kesihatan Mental</div>
-    <button class="btn-close-saringan" onclick="closeSaringan()">✕ Tutup</button>
-  </div>
-
-  <!-- ADD THIS loading overlay inside saringan: -->
-  <div id="saringan-loading" style="
-    position:absolute;inset:0;top:52px;
-    background:var(--bg);
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:20px;
-    z-index:10;transition:opacity .5s ease;
-  ">
-    <div style="position:relative;width:100px;height:100px;
-      display:flex;align-items:center;justify-content:center;">
-      <!-- Outer ring -->
-      <div style="position:absolute;width:100px;height:100px;
-        border-radius:50%;border:3px solid rgba(139,92,246,.15);
-        border-top:3px solid var(--purple);border-right:3px solid var(--accent2);
-        animation:spin 1s linear infinite;"></div>
-      <!-- Middle ring -->
-      <div style="position:absolute;width:72px;height:72px;
-        border-radius:50%;border:2px solid rgba(139,92,246,.1);
-        border-bottom:2px solid var(--purple);
-        animation:spin 1.5s linear infinite reverse;"></div>
-      <!-- Brain icon -->
-      <div style="font-size:32px;z-index:2;">🧠</div>
-    </div>
-
-    <div style="text-align:center;">
-      <div style="font-size:15px;font-weight:700;color:var(--text1);
-        margin-bottom:6px;" id="saringan-load-title">
-        Memuatkan Saringan...
-      </div>
-      <div style="font-size:12px;color:var(--text3);
-        line-height:1.6;max-width:240px;" id="saringan-load-sub">
-        Sila tunggu sebentar
-      </div>
-    </div>
-
-    <!-- Animated progress dots -->
-    <div style="display:flex;gap:8px;">
-      <div style="width:8px;height:8px;border-radius:50%;
-        background:var(--purple);animation:typingBob .9s ease-in-out infinite;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;
-        background:var(--accent2);animation:typingBob .9s ease-in-out infinite;
-        animation-delay:.2s;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;
-        background:var(--accent);animation:typingBob .9s ease-in-out infinite;
-        animation-delay:.4s;"></div>
-    </div>
-
-    <!-- Motivational message cycling -->
-    <div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);
-      border-radius:12px;padding:12px 16px;max-width:280px;text-align:center;
-      font-size:12px;color:#C4B5FD;line-height:1.6;" id="saringan-load-msg">
-      💬 Saringan ini mengambil masa kurang dari 5 minit
-    </div>
-  </div>
-
- <iframe id="saringan-iframe" src=""
-  style="display:none;">
-</iframe>
-
-</div><!-- end .app -->
-
-<!-- ALERT TOAST -->
-<div class="alert-toast" id="alert-toast">
-  <div class="toast-ico" id="toast-ico">⚠️</div>
-  <div class="toast-body2">
-    <div class="toast-title" id="toast-title">—</div>
-    <div class="toast-sub2" id="toast-sub2">—</div>
-  </div>
-  <button class="toast-close" onclick="hideToast()">✕</button>
-</div>
-
-<!-- NOTIFICATION SOUND -->
-<audio id="aud-notify" preload="auto">
-  <source src="https://opdkktu.github.io/trial1/bell.mp3" type="audio/mpeg">
 </audio>
 
-<script>
-// ══════════════════════════════════════════════════════
-//  ★ CONFIG — UPDATE THESE
-// ══════════════════════════════════════════════════════
+<audio
+  id="darahAudio"
+  preload="auto"
+>
+  <source
+    src="darah.mp3"
+    type="audio/mpeg"
+  >
+</audio>
+<!-- =========================
+     STATUS
+========================= -->
 
-  var HIERARCHY = [
-  {
-    state: "Kedah",
-    districts: [
-      {
-        district: "Kubang Pasu",
-        clinics: [
-          { id:"ayer-hitam",  name:"Klinik Kesihatan Ayer Hitam",  url:"/api/ayer-hitam", color:"#00C896" },
-          { id:"Kodiang",  name:"Klinik Kesihatan Kodiang(akan datang)",  url:"/api/kodiang", color:"#00A8FF" },
-          { id:"jitra",       name:"Klinik Kesihatan Jitra(akan datang)",        url:"/api/jitra", color:"#8B5CF6" }
-        ]
-      },
-      {
-        district: "Kulim",
-        clinics: [
-          { id:"mahang",  name:"Klinik Kesihatan Mahang",  url:"/api/mahang", color:"#F59E0B" },
-          { id:"karangan",  name:"Klinik Kesihatan Karangan",  url:"/api/karangan", color:"#F59E0B" },
-        ]
-      }
-    ]
-  },
-  {
-    state: "Perlis",
-    districts: [
-      {
-        district: "Kangar",
-        clinics: [
-          { id:"kangar",      name:"Klinik Kesihatan Kangar",       url:".api/kangar", color:"#EF4444" }
-        ]
-      }
-    ]
-  }
+<div id="status">
+  Loading AI...
+</div>
+
+
+<!-- =========================
+     SAFETY TICKER
+========================= -->
+
+<div id="ticker">
+
+  <div id="tickerText">
+
+    ⚠️ Sekiranya alarm kebakaran diaktifkan,
+    jangan cemas dan ikuti arahan petugas kami.
+    Utamakan Orang Kurang Upaya (OKU),
+    warga emas, ibu mengandung dan kanak-kanak.
+
+  </div>
+
+</div>
+<script type="module">
+
+/* ============================================================
+   MEDIAPIPE
+============================================================ */
+
+import {
+  FilesetResolver,
+  FaceDetector
+}
+from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+
+
+/* ============================================================
+   ELEMENTS
+============================================================ */
+
+const video =document.getElementById("webcam");
+const audio =document.getElementById("welcomeAudio");
+const welcomeScreen = document.getElementById("welcomeScreen");
+const statusBox = document.getElementById("status");
+const announcementScreen =  document.getElementById("announcementScreen");
+const announcementImage = document.getElementById("announcementImage");
+const announcementBell =  document.getElementById("announcementBell");
+const announcementAudio =  document.getElementById("announcementAudio");
+const darahAudio =  document.getElementById("darahAudio");
+const scanArrow =  document.getElementById("scanArrow");
+const nightMode =  document.getElementById("nightMode");
+const qrAnnouncementScreen = document.getElementById("qrAnnouncementScreen");
+const scanQrAudio = document.getElementById("scanQrAudio");
+const nightPulse = document.getElementById("nightPulse");
+
+/* ============================================================
+   GOOGLE APPS SCRIPT UPLOAD URL
+============================================================ */
+
+const UPLOAD_URL =
+  "https://script.google.com/macros/s/AKfycbwk5KkSK1kZCIMqG8ITAiNXKYioQGO8R-ODWOpZUsKjKdjLWylfC_XXhqAD-VI12iA7/exec";
+
+
+/* ============================================================
+   CAMERA SETTINGS
+============================================================ */
+
+const CAMERA_WIDTH = 640;
+const CAMERA_HEIGHT = 480;
+
+
+/* ============================================================
+   DAY / NIGHT SETTINGS
+============================================================ */
+
+/*
+   PRIMA DAY MODE:
+   07:00 → 17:00
+
+   PRIMA NIGHT MODE:
+   17:00 → 07:00
+*/
+
+const DAY_START_HOUR = 7;
+const DAY_START_MINUTE = 0;
+
+const NIGHT_START_HOUR = 17;
+const NIGHT_START_MINUTE = 20;
+
+
+/* ============================================================
+   AI VARIABLES
+============================================================ */
+
+let detector = null;
+
+let triggered = false;
+
+let lastSeen = 0;
+
+let showingWelcome = false;
+
+let detectionRunning = false;
+
+let systemStarting = false;
+
+let currentDayMode = false;
+
+/* ============================================================
+   TIMESTAMP VIDEO CANVAS
+============================================================ */
+
+let recordingCanvas = null;
+let recordingCanvasContext = null;
+let recordingCanvasStream = null;
+let timestampAnimationFrame = null;
+  /* ============================================================
+     CCTV WEBRTC
+============================================================ */
+
+/*
+   FREE STACK (no server, no time limit):
+   - PeerJS cloud  = signalling only
+   - Google STUN   = finds a direct route
+   - Video goes straight from this screen to the viewer (peer-to-peer)
+
+   CCTV_PEER_ID must be identical in cctv.html.
+*/
+
+const CCTV_PEER_ID = "kkah-welcome-cam-gz345w9dgy";
+
+/*
+   SHA-256 of the viewer passphrase. The passphrase itself is NOT
+   stored in this public repository. Viewers type it in cctv.html.
+*/
+
+const CCTV_PASS_HASH = "0e6b84df8a6404c4c0e79a5e97519e9924ff957c642f308fcc1882addabc2e3e";
+
+/* Maximum people watching at the same time. */
+
+const CCTV_MAX_VIEWERS = 2;
+
+/* Upload limit per viewer (keeps the clinic network light). */
+
+const CCTV_MAX_BITRATE_KBPS = 500;
+
+/*
+   OPTIONAL free TURN relay. Only used when a clinic firewall blocks
+   the direct route. Create a free account at https://www.metered.ca
+   (Open Relay: 20 GB/month free), then paste the credentials URL:
+
+   "https://YOURAPP.metered.live/api/v1/turn/credentials?apiKey=YOURKEY"
+
+   Leave empty to use STUN only. Use the same value in cctv.html.
+*/
+
+const CCTV_TURN_CREDENTIALS_URL = "https://YOURAPP.metered.live/api/v1/turn/credentials?apiKey=25668d66fc841c9540f63fcb8dd1de81c7e6";
+
+let cctvPeer = null;
+
+let cctvViewers = new Map();
+
+let cctvActive = false;
+
+let cctvStarting = false;
+
+let cctvRestartTimer = null;
+
+let cctvReconnectTimer = null;
+
+let cctvRestartDelay = 5000;
+/* ============================================================
+   RECORDING SETTINGS
+============================================================ */
+
+/* Additional recording windows */
+const RECORDING_WINDOWS = [
+  { start: "07:00", end: "08:06" },
+  { start: "17:00", end: "17:16" }
+];
+const VIDEO_BITRATE = 500000;
+/* ============================================================
+   GENERAL ANNOUNCEMENT
+============================================================ */
+
+const ANNOUNCEMENT_TIMES = [
+  "08:00",
+  "09:30",
+  "11:00","11:30",
+  "12:00",
+  "14:10",
+  "15:00",
+  "16:00"
 ];
 
-var _selectedClinic = null; // set when patient picks a clinic
-var _saringanToken = null;     // short-lived token from GAS
-var _maskedPatient = null;     // masked data for display only
+const BELL_URL =
+  "https://opdkktu.github.io/trial1/bell.mp3";
 
-var WAIT_PER_NUM_MIN = 15; // estimated minutes per queue number
-var POLL_INTERVAL_MS = 10000; // 10 seconds
-window._saringanBubbleRevealed = false;
-var STAGE_LABELS = {
-  KAUNTER : { name:"Kaunter Pendaftaran", icon:"📋", short:"Pendaftaran" },
-  NURSE   : { name:"Stesen Jururawat",    icon:"🩺", short:"Jururawat"  },
-  DOCTOR  : { name:"Bilik Doktor",        icon:"👨‍⚕️", short:"Doktor"     },
-  TCA     : { name:"Kaunter TCA",         icon:"📅", short:"TCA"        }
+const NASIHAT_AUDIO =
+  "nasihat1.mp3";
+
+const NASIHAT_IMAGE =
+  "nasihat1.jpg";
+
+let announcementActive = false;
+
+let lastAnnouncementKey = "";
+
+
+/* ============================================================
+   QR ANNOUNCEMENT
+   Shows the QR code, pauses human detection, plays scanqr.mp3,
+   then everything goes back to normal.
+============================================================ */
+
+const QR_ANNOUNCEMENT_TIMES = [
+  "08:05",
+  "08:15",
+  "08:35",
+  "08:45",
+  "09:05",
+  "10:05",
+  "10:35",
+  "11:05",
+  "14:05",
+  "14:35",
+  "15:05",
+  "15:35",
+  /* add more times here, e.g. "10:05" */
+];
+
+/* If scanqr.mp3 is missing or blocked, show the QR for this long. */
+
+const QR_FALLBACK_MS = 20000;
+
+let qrAnnouncementActive = false;
+
+let lastQrAnnouncementKey = "";
+
+
+/* ============================================================
+   WELCOME WINDOW
+   Human detection / welcome.png / welcome.mp3 only run
+   between these times. Outside it, detection is stopped.
+============================================================ */
+
+const WELCOME_START_MINUTES = 7 * 60 + 40;   // 07:40
+
+const WELCOME_END_MINUTES = 16 * 60 + 30;    // 16:30
+
+
+/* ============================================================
+   KEEP SCREEN AWAKE (also overnight)
+============================================================ */
+
+const KEEP_AWAKE_INTERVAL_MS = 30 * 60 * 1000;
+
+const NIGHT_PULSE_MS = 10000;
+
+let wakeLock = null;
+
+
+/* ============================================================
+   RECORDING VARIABLES — DUAL OVERLAP RECORDER
+============================================================ */
+
+let recordingActive = false;
+
+let uploadInProgress = false;
+
+/*
+   Two recorders alternate.
+
+   Example:
+
+   Recorder A
+   File 1: 07:10:00 → 07:12:02
+   File 3: 07:14:00 → 07:16:02
+
+   Recorder B
+   File 2: 07:12:00 → 07:14:02
+   File 4: 07:16:00 → 07:18:02
+*/
+
+const recorderSlots = {
+
+  A: {
+    recorder: null,
+    chunks: [],
+    startTime: null,
+    stopTimer: null,
+    active: false
+  },
+
+  B: {
+    recorder: null,
+    chunks: [],
+    startTime: null,
+    stopTimer: null,
+    active: false
+  }
+
 };
-var STAGE_ORDER = ["KAUNTER","NURSE","DOCTOR","TCA"];
-   
-// ── CAPTURE ADD TO HOME SCREEN PROMPT ──
-window._deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", function(e){
-  e.preventDefault();
-  window._deferredPrompt = e;
-  // Show install hint
-  document.getElementById("install-hint").style.display = "flex";
-});
-window.addEventListener("appinstalled", function(){
-  window._deferredPrompt = null;
-  document.getElementById("install-hint").style.display = "none";
-  showToast("calling","✅ WebApp Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
-});
-// ══════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════
-var _queueNum      = null;
-var _pollTimer     = null;
-var _notifGranted  = false;
-var _lastStatus    = null;
-var _toastTimer    = null;
-var _calledNotified  = false;
-var _standbyNotified = false;
-var _playerID = null;
 
-// ══════════════════════════════════════════════════════
-//  CLOCK
-// ══════════════════════════════════════════════════════
-function pad(n){ return n<10?"0"+n:""+n; }
-function tickClock(){
-  var d = new Date();
-  document.getElementById("hdr-clock").textContent =
-    pad(d.getHours())+":"+pad(d.getMinutes());
-}
-tickClock(); setInterval(tickClock, 1000);
 
-// ══════════════════════════════════════════════════════
-//  LOADING
-// ══════════════════════════════════════════════════════
-window.addEventListener("load", function(){
-  initHierarchy();
-  var savedDate = localStorage.getItem("prima_queue_date");
-var today = new Date().toISOString().slice(0, 10);
-if (savedDate && savedDate !== today) {
-  localStorage.removeItem("prima_queue_date");
-  localStorage.removeItem("prima_queue_num");
-  localStorage.removeItem("prima_queue_time");
-  if (window.OneSignalDeferred) {
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.User.removeTags(["queue_num", "queue_date"]);
-    });
-  }
-}
-localStorage.setItem("prima_queue_date", today);
-  setTimeout(function(){
-    var msg = document.getElementById("loader-subtext");
-    if(msg){
-      msg.textContent =
-        "Sambungan agak perlahan... masih memuatkan";
-    }
-  }, 5000);
+/*
+   Main scheduler timer.
+*/
 
-  setTimeout(function(){
-    var ol = document.getElementById("loading-overlay");
-    ol.classList.add("hide");
-    setTimeout(function(){
-      ol.style.display="none";
-    },500);
-  },800);
+let recordingSchedulerTimer = null;
 
-  checkInstallHint();
-  // Capture OneSignal Player ID silently
-setTimeout(function(){
-  if(window.OneSignalDeferred){
-    OneSignalDeferred.push(async function(OneSignal){
-      try{
-        var id = await OneSignal.User.PushSubscription.id;
-        if(id){ 
-          _playerID = id;
-          localStorage.setItem("prima_player_id", id);
-          console.log("[PRIMA] Player ID:", id);
-        }
-      } catch(e){ console.warn("[PRIMA] Player ID fetch failed:", e); }
-    });
-  }
-}, 3000);
 
-  // Notification prompt — outside the 800ms timeout
-  setTimeout(function(){
-    if(window.OneDeferred){
-      OneDeferred.push(async function(One){
-        await One.Notifications.requestPermission();
-      });
-    }
-  }, 2000);
-  // ADD before the saved queue restore block:
-var savedClinicId = localStorage.getItem("prima_clinic_id");
-if(savedClinicId){
-  var savedClinic = null;
-  HIERARCHY.forEach(function(s){
-    s.districts.forEach(function(d){
-      d.clinics.forEach(function(c){
-        if(c.id === savedClinicId) savedClinic = c;
-      });
-    });
-  });
-  if(savedClinic){
-    _selectedClinic = savedClinic;
-    document.querySelector(".brand-sub").textContent = savedClinic.name;
-    document.getElementById("screen-clinic").classList.remove("active");
-    document.getElementById("screen-input").classList.add("active");
-  }
-}
-  var saved = localStorage.getItem("prima_queue_num");
-var savedTime = parseInt(localStorage.getItem("prima_queue_time") || "0");
+/* ============================================================
+   RECORDING SETTINGS
+============================================================ */
 
-var EIGHT_HOURS = 8 * 60 * 60 * 1000;
+/*
+   EACH FILE = 2 MINUTES
 
-if(saved && (Date.now() - savedTime < EIGHT_HOURS)){
-  document.getElementById("queue-input").value = saved;
+   Camera itself remains running continuously.
 
-  setTimeout(function(){
-    _queueNum = parseInt(saved);
-    fetchStatus(_queueNum, function(data){
-      if(data && data.status === "success"){
-        showStatusScreen(data);
-        startPolling();
-      }
-    });
-  }, 900);
+   The MediaRecorder is restarted every
+   2 minutes to create a new file.
+*/
 
-} else {
-  // Expired
-  localStorage.removeItem("prima_queue_num");
-  localStorage.removeItem("prima_queue_time");
-}
-});
+const RECORDING_START_INTERVAL_MS  =
+  2 * 60 * 1000;
+  /*
+   Each file continues for an additional
+   2 seconds after the next file starts.
 
-// ══════════════════════════════════════════════════════
-//  PWA — ADD TO HOME SCREEN
-// ══════════════════════════════════════════════════════
-function checkInstallHint(){
-  var isStandalone = window.matchMedia("(display-mode: standalone)").matches
-    || window.navigator.standalone;
-  if(isStandalone){
-    document.getElementById("install-hint").style.display = "none";
-    return;
-  }
+   Example:
 
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
-  var hint  = document.getElementById("install-hint");
-  var iosEl = document.getElementById("install-ios-hint");
+   File 1
+   07:10:00 → 07:12:02
 
-  if(isIOS){
-    // Always show on iOS — must add to home screen first for notifications
-    hint.style.display = "flex";
-    if(iosEl) iosEl.style.display = "inline";
-  }
-  // Android — shown by beforeinstallprompt event
-}
+   File 2
+   07:12:00 → 07:14:02
+*/
 
-// ══════════════════════════════════════════════════════
-// clinics functions
-// ══════════════════════════════════════════════════════
-// ── POPULATE STATE DROPDOWN ON LOAD ──
-function initHierarchy(){
-  var sel = document.getElementById("sel-state");
-  HIERARCHY.forEach(function(s){
-    var opt = document.createElement("option");
-    opt.value = s.state; opt.textContent = s.state;
-    sel.appendChild(opt);
-  });
-}
+const RECORDING_OVERLAP_MS =
+  2 * 1000;
 
-function onStateChange(stateVal){
-  // Reset district + clinic
-  var dSel = document.getElementById("sel-district");
-  var cSel = document.getElementById("sel-clinic");
-  dSel.innerHTML = "<option value=''>— Pilih Daerah —</option>";
-  cSel.innerHTML = "<option value=''>— Pilih Klinik —</option>";
-  document.getElementById("step-district").style.display = "none";
-  document.getElementById("step-clinic-sel").style.display = "none";
-  document.getElementById("btn-confirm-clinic").style.display = "none";
 
-  if(!stateVal) return;
-  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
-  if(!stateObj) return;
+/*
+   Total duration of every file.
 
-  stateObj.districts.forEach(function(d){
-    var opt = document.createElement("option");
-    opt.value = d.district; opt.textContent = d.district;
-    dSel.appendChild(opt);
-  });
-  document.getElementById("step-district").style.display = "flex";
-}
+   120 seconds + 2 seconds
+*/
 
-function onDistrictChange(distVal){
-  var cSel = document.getElementById("sel-clinic");
-  cSel.innerHTML = "<option value=''>— Pilih Klinik —</option>";
-  document.getElementById("step-clinic-sel").style.display = "none";
-  document.getElementById("btn-confirm-clinic").style.display = "none";
+const RECORDING_FILE_DURATION_MS =
+  RECORDING_START_INTERVAL_MS +
+  RECORDING_OVERLAP_MS;
 
-  if(!distVal) return;
-  var stateVal = document.getElementById("sel-state").value;
-  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
-  if(!stateObj) return;
-  var distObj  = stateObj.districts.filter(function(d){ return d.district === distVal; })[0];
-  if(!distObj) return;
+/* ============================================================
+   DAY / NIGHT TIME FUNCTIONS
+============================================================ */
 
-  distObj.clinics.forEach(function(c){
-    var opt = document.createElement("option");
-    opt.value = c.id; opt.textContent = c.name;
-    cSel.appendChild(opt);
-  });
-  document.getElementById("step-clinic-sel").style.display = "flex";
-}
+function getCurrentMinutes(){
 
-function onClinicChange(clinicId){
-  document.getElementById("btn-confirm-clinic").style.display =
-    clinicId ? "flex" : "none";
-}
+  const now = new Date();
 
-function confirmClinicSelection(){
-  var stateVal = document.getElementById("sel-state").value;
-  var distVal  = document.getElementById("sel-district").value;
-  var clinicId = document.getElementById("sel-clinic").value;
-  if(!clinicId) return;
-
-  var stateObj = HIERARCHY.filter(function(s){ return s.state === stateVal; })[0];
-  var distObj  = stateObj.districts.filter(function(d){ return d.district === distVal; })[0];
-  var clinic   = distObj.clinics.filter(function(c){ return c.id === clinicId; })[0];
-  if(!clinic) return;
-
-  selectClinic(clinic);
-}
-  function selectClinic(clinic){
-  _selectedClinic = clinic;
-
-  // Update header subtitle
-  document.querySelector(".brand-sub").textContent =
-    clinic.name + " · " + clinic.zone;
-
-  // Save selection
-  try { localStorage.setItem("prima_clinic_id", clinic.id); } catch(e){}
-
-  // Switch to input screen
-  document.getElementById("screen-clinic").classList.remove("active");
-  document.getElementById("screen-input").classList.add("active");
-  setTimeout(function(){
-    document.getElementById("queue-input").focus();
-  }, 300);
-}
-  function resetToClinicSelect(){
-  _selectedClinic = null;
-  _queueNum = null;
-  stopPolling();
-  clearQueueNotificationTag();
-  localStorage.removeItem("prima_queue_num");
-  localStorage.removeItem("prima_queue_time");
-  localStorage.removeItem("prima_clinic_id");
-  document.getElementById("screen-input").classList.remove("active");
-  document.getElementById("screen-status").classList.remove("active");
-  document.getElementById("screen-called").classList.remove("active");
-  document.getElementById("screen-clinic").classList.add("active");
-}
-// ══════════════════════════════════════════════════════
-//  ENTER KEY SUBMIT
-// ══════════════════════════════════════════════════════
-document.getElementById("queue-input").addEventListener("keydown", function(e){
-  if(e.key === "Enter") submitQueueNum();
-});
-document.getElementById("queue-input").addEventListener("input", function(){
-  document.getElementById("input-error").textContent = "";
-});
-
-// ══════════════════════════════════════════════════════
-//  SUBMIT QUEUE NUMBER
-// ══════════════════════════════════════════════════════
-function submitQueueNum(){
-   // Ask notification permission on first user action via OneSignal
-   if (window.OneSignalDeferred) {
-     OneSignalDeferred.push(async function(OneSignal) {
-       await OneSignal.Notifications.requestPermission();
-     });
-   }
-  var val = document.getElementById("queue-input").value.trim().replace(/\D/g,"");
-  var errEl = document.getElementById("input-error");
-
-  if(!val || val.length < 1){
-    errEl.textContent = "Sila masukkan nombor giliran anda";
-    errEl.style.animation = "none"; void errEl.offsetWidth;
-    errEl.style.animation = "errShake .3s ease";
-    return;
-  }
-  if(val.length > 4){
-    errEl.textContent = "Nombor giliran maksimum 4 digit";
-    return;
-  }
-
-  _queueNum = parseInt(val);
-  _calledNotified  = false;
-// ---> ADD THIS NEW ONESIGNAL LINE HERE <---
-  if (window.OneSignalDeferred) {
-  OneSignalDeferred.push(async function(OneSignal) {
-    try {
-      await new Promise(function(resolve){ setTimeout(resolve, 1000); });
-      var numStr = parseInt(_queueNum).toString();
-      var today = new Date().toISOString().slice(0, 10);
-      await OneSignal.User.addTag("queue_num", numStr);
-      await OneSignal.User.addTag("queue_date", today);  
-      console.log("[PRIMA] Tags set OK: queue_num =", numStr, "| queue_date =", today);
-    } catch(e) {
-      console.error("[PRIMA] Tag failed:", e);
-    }
-  });
-}
-
-     _standbyNotified = false;
-  localStorage.setItem("prima_queue_num", val);
-var pid = _playerID || localStorage.getItem("prima_player_id");
-if(pid && _selectedClinic){
-  fetch(_selectedClinic.url + "?action=savePlayerID&num=" + encodeURIComponent(val) + "&pid=" + encodeURIComponent(pid))
-    .catch(function(){});
-}
-  // Show loading state on button
-  var btn = document.getElementById("btn-check");
-  btn.disabled = true;
-  btn.innerHTML = "<div class='loader-ring' style='width:22px;height:22px;border-width:2px;'></div><span>Menyemak...</span>";
-
-  fetchStatus(_queueNum, function(data){
-    btn.disabled = false;
-    btn.innerHTML = "<span class='btn-submit-icon'>🔍</span><span>Semak Status</span>";
-
-    if(!data || data.status !== "success"){
-      errEl.textContent = data ? (data.message||"Nombor tidak dijumpai hari ini") : "Ralat sambungan. Cuba semula.";
-      errEl.style.animation = "none"; void errEl.offsetWidth;
-      errEl.style.animation = "errShake .3s ease";
-      return;
-    }
-// Add this inside the fetchStatus callback, after showStatusScreen(data):
-if ("Notification" in window && Notification.permission === "default") {
-  // Small delay so screen has switched first
-  setTimeout(function() {
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.Notifications.requestPermission();
-    });
-  }, 1500);
-}
-    showStatusScreen(data);
-    startPolling();
-  });
-}
-function _askNotifPermission(){
-  if(!("Notification" in window)) return;
-  if(Notification.permission !== "default") return; // already granted or denied
-
-  Notification.requestPermission().then(function(perm){
-    _notifGranted = perm === "granted";
-    updateNotifBtn();
-
-    if(_notifGranted){
-      // Register SW immediately
-      if("serviceWorker" in navigator){
-        navigator.serviceWorker.register("sw.js")
-          .then(function(reg){
-            window._swReg = reg;
-            console.log("[SW] Registered");
-          });
-      }
-      // Trigger Add to Home Screen on Android
-      if(window._deferredPrompt){
-        window._deferredPrompt.prompt();
-        window._deferredPrompt.userChoice.then(function(r){
-          window._deferredPrompt = null;
-        });
-      }
-    }
-  });
-}
-// ══════════════════════════════════════════════════════
-//  FETCH STATUS FROM GAS
-// ══════════════════════════════════════════════════════
-function fetchStatus(num, cb){
-  // Use selected clinic URL — not a static GAS_URL var
-  var url = (_selectedClinic ? _selectedClinic.url : "") + "?action=status&num=" + encodeURIComponent(num);
-  if(!_selectedClinic){
-    cb({ status:"error", message:"Tiada klinik dipilih" });
-    return;
-  }
-  fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(function(data){ cb(data); })
-    .catch(function(){ cb(null); });
-}
-
-// ══════════════════════════════════════════════════════
-//  SHOW STATUS SCREEN
-// ══════════════════════════════════════════════════════
-function showStatusScreen(data){
-
-   // Reset notification flags when patient advances to a new stage
-   if(_lastStatus && _lastStatus.currentStage !== data.currentStage){
-     _calledNotified  = false;
-     _standbyNotified = false;
-   }
-  _lastStatus = data;
-  // Switch screen
-  document.getElementById("screen-input").classList.remove("active");
-  document.getElementById("screen-status").classList.add("active");
-  document.getElementById("screen-called").classList.remove("active");
-
-  // Badge
-  var numPad = String(data.inputNum).padStart(4,"0");
-  document.getElementById("badge-num").textContent = numPad;
-  document.getElementById("badge-series").textContent =
-    "Siri " + data.series + "xxx · " + getStageLabel(data.currentStage);
-   var nameEl = document.getElementById("badge-name");
-   var notYet = data.notCalledYet;
-   if(nameEl){
-     nameEl.textContent = data.name ? data.name : "";
-     nameEl.style.display = data.name ? "block" : "none";
-   }else if(notYet){
-    nameEl.textContent = "Menunggu panggilan pendaftaran";
-    nameEl.style.color = "var(--amber)";
-    nameEl.style.display = "block";
-  } else {
-    nameEl.style.display = "none";
-  }
-  // Checkpoint train
-  renderTrain(data);
-
-  // Current calling number
-  var prevNum = document.getElementById("call-num-big").textContent;
-  var newNum  = data.currentCallingNum ? String(data.currentCallingNum).padStart(4,"0") : "——";
-  document.getElementById("call-num-big").textContent = newNum;
-  if(prevNum !== newNum && prevNum !== "—"){
-    var el = document.getElementById("call-num-big");
-    el.classList.remove("flip"); void el.offsetWidth; el.classList.add("flip");
-  }
- document.getElementById("call-stage-label").textContent = data.notCalledYet
-  ? "Nombor Semasa Dipanggil — Kaunter Pendaftaran"
-  : "Nombor Semasa Dipanggil — " + getStageLabel(data.currentStage);
-  document.getElementById("call-stage-name").textContent =
-    (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
-
-  // Wait cells
-  var ahead = data.numbersAhead;
-  var estMin = ahead * WAIT_PER_NUM_MIN;
-  var aheadEl = document.getElementById("cell-ahead");
-  var waitEl  = document.getElementById("cell-wait");
-  aheadEl.textContent = ahead;
-  waitEl.textContent  = estMin;
-  aheadEl.className = "wait-cell-num " + (ahead <= 2 ? "red" : ahead <= 5 ? "amber" : "green");
-  waitEl.className  = "wait-cell-num " + (estMin <= 30 ? "red" : estMin <= 75 ? "amber" : "green");
-
-  // Progress bar
-  renderProgress(data);
-
-  // Notification state
-  updateNotifBtn();
-
-  // ── Phase 2: fetch prefill data once per queue number ──
-  if (_queueNum && !_saringanToken && !window._saringanDone) {
-    fetchQueuePrefill(_queueNum);
-    console.log("[STATUS] Triggered prefill fetch for:", _queueNum);
-  }
-  
-  // Timestamp
-  var d = new Date();
-  document.getElementById("last-refresh").textContent =
-    pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
-
-  // Check alerts
-  checkAlerts(data);
-}
-
-// ══════════════════════════════════════════════════════
-//  RENDER CHECKPOINT TRAIN
-// ══════════════════════════════════════════════════════
-function renderTrain(data){
-  var track = document.getElementById("train-track");
-  var checkpointMap = {};
-  (data.checkpoints||[]).forEach(function(c){ checkpointMap[c.stage] = c; });
-
-  track.innerHTML = STAGE_ORDER.map(function(stage, idx){
-    var cp   = checkpointMap[stage] || { status:"PENDING" };
-    var lbl  = STAGE_LABELS[stage]  || { name:stage, icon:"📍" };
-
-    var isDone   = cp.status === "ATTENDED";
-    var isCalled = cp.status === "WAITING" || cp.status === "CALLED";
-    var isCur    = stage === data.currentStage && !isDone;
-    var isPend   = !isDone && !isCur;
-    var sarBtn = document.getElementById("btn-saringan-status");
-      if(sarBtn) sarBtn.style.display = window._saringanDone ? "none" : "flex";
-
-    var cls = isDone ? "attended" : isCur ? "current" : "pending";
-
-    var badge;
-    if(isDone){
-      badge = "<span class='station-badge badge-attended'>✓ Selesai</span>";
-    } else if(isCur && isCalled){
-      var roomLabel = "";
-  if(stage === "DOCTOR" && cp.calledBy){
-    // calledBy = "DOKTOR_1", "DOKTOR_2" etc — extract room number
-    var roomNum = cp.calledBy.replace(/\D/g,"");
-    roomLabel = roomNum ? " — Bilik " + roomNum : "";
-  } else if(stage === "NURSE" && cp.calledBy){
-    roomLabel = " Jururawat - Kaunter A";
-  }
-  badge = "<span class='station-badge badge-current'>🔔 Dipanggil" + roomLabel + "</span>";
-    } else if(isCur){
-      badge = "<span class='station-badge badge-current'>⏳ Sedang Menunggu</span>";
-    } else {
-      badge = "<span class='station-badge badge-pending'>Belum Sampai</span>";
-    }
-
-    var roomInfo = "";
-if(stage === "DOCTOR" && cp.calledBy){
-  var rn = cp.calledBy.replace(/\D/g,"");
-  if(rn) roomInfo = " · <span style='color:var(--accent2);font-weight:600;'>Bilik " + rn + "</span>";
-}
-var timeHtml = cp.calledAt
-  ? "<span class='station-time'>" + cp.calledAt + "</span>" + roomInfo
-  : "";
-
-// TCA medicine reminder badge
-var medBadge = "";
-if(stage === "TCA" && data.medicineReminder){
-  medBadge = "<div style='margin-top:6px;display:inline-flex;align-items:center;gap:6px;" +
-    "padding:5px 10px;border-radius:20px;" +
-    "background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);'>" +
-    "<span style='font-size:13px;'>💊</span>" +
-    "<span style='font-size:11px;font-weight:600;color:var(--accent);'>Peringatan ubat bermula esok</span>" +
-    "</div>";
-}
-var saringanBtn = "";
-if(stage === "NURSE"|| stage === "DOCTOR"){
-  if(window._saringanDone){
-    saringanBtn = "<div style='margin-top:6px;'>" +
-      "<span style='color:var(--accent);font-size:11px;font-weight:700;'>✅ Saringan Selesai</span>" +
-      "</div>";
-  } else if(isCur) {
-    // Only show bubble when NURSE is the CURRENT stage
-    var bubbleText = window._saringanBubbleRevealed
-      ? '👈click here. Bosan menunggu? Senang je — jom isi! 😊'
-      : '<div class="typing-dots"><span></span><span></span><span></span></div>';
-    saringanBtn = "<div style='margin-top:6px;'>" +
-      "<button class='btn-saringan-minda' onclick='openSaringan()'>" +
-"🧠 Saringan Kesihatan Mental" +
-"</button>" +
- "<div class='chat-bubble' id='saringan-chat-bubble' onclick='openSaringan()' style='cursor:pointer;'>" + bubbleText + "</div>" +
-  "</div>";}
-}
-    return "<div class='station "+cls+"'>" +
-      "<div class='station-dot'>" + lbl.icon + "</div>" +
-      "<div class='station-body'>" +
-        "<div class='station-name'>" + lbl.name + "</div>" +
-        "<div class='station-meta'>" + timeHtml + badge + "</div>" +medBadge +
-       medBadge +saringanBtn +
-      "</div>" +
-    "</div>";
-  }).join("");
-
-  // Animate progress line after render
-  setTimeout(function(){
-    var dots = track.querySelectorAll(".station-dot");
-    // We'll draw the line via a pseudo element approach — already handled in CSS
-  }, 100);
-
-  if(!window._saringanBubbleRevealed){
-  setTimeout(function(){
-    var b = document.getElementById('saringan-chat-bubble');
-    if(b){
-      b.innerHTML = '👈click here. Bosan menunggu? Senang je — jom isi! 😊';
-      window._saringanBubbleRevealed = true;
-    }
-  }, 1800);
-}
-}
-// ══════════════════════════════════════════════════════
-//  RENDER PROGRESS BAR
-// ══════════════════════════════════════════════════════
-function renderProgress(data){
-  // Estimate total series numbers (rough: seriesSize ~50 per day)
-  // Use currentCallingNum vs inputNum for relative progress
-  var cur  = data.currentCallingNum || 0;
-  var mine = data.inputNum;
-  var pct  = cur >= mine ? 100 : Math.max(0, Math.round((cur / mine) * 100));
-  document.getElementById("progress-fill").style.width = pct + "%";
-  document.getElementById("progress-pct").textContent = pct + "%";
-}
-
-function getStageLabel(stage){
-  return (STAGE_LABELS[stage]||{}).short || stage;
-}
-
-// ══════════════════════════════════════════════════════
-//  CHECK ALERTS — standby + called
-// ══════════════════════════════════════════════════════
-function checkAlerts(data){
-  if(!data || data.status !== "success") return;
-
-  var myNum    = data.inputNum;
-  var myStage  = data.currentStage;
-  var curCalling = data.currentCallingNum;
-  var ahead = parseInt(data.numbersAhead);
-  // ── CALLED — my exact number is now being called at my current stage ──
-  // Triggers when: my entry exists at currentStage with status WAITING/CALLED
-  var myCheckpoint = (data.checkpoints||[]).filter(function(c){
-    return c.stage === myStage;
-  })[0];
-
-  var iAmBeingCalled = myCheckpoint
-    && (myCheckpoint.status === "WAITING" || myCheckpoint.status === "CALLED")
-   && parseInt(curCalling) === parseInt(myNum);
-
-  if(iAmBeingCalled && !_calledNotified){
-    _calledNotified = true;
-    showCalledScreen(data);
-    sendNotification(
-      "🔔 Nombor Anda Dipanggil!",
-      "No. " + String(myNum).padStart(4,"0") +
-      " — sila ke " + getStageLabel(myStage) + " sekarang"
-    );
-    playNotifSound();
-    return; // don't also show standby
-  }
-
-  // ── STANDBY — exactly 1 number before mine at my current stage ──
-var isStandby = parseInt(ahead) === 1 && !iAmBeingCalled;
-  if(isStandby && !_standbyNotified){
-    _standbyNotified = true;
-    showToast("standby",
-      "⏳ Bersedia — 1 Nombor Lagi!",
-      "No. anda hampir dipanggil di " + getStageLabel(myStage)
-    );
-    sendNotification(
-      "⏳ Bersedia Sekarang!",
-      "Hanya 1 nombor lagi sebelum giliran anda di " +
-      getStageLabel(myStage)
-    );
-    playNotifSound();
-  }
-}
-
-// ══════════════════════════════════════════════════════
-//  CALLED SCREEN
-// ══════════════════════════════════════════════════════
-function showCalledScreen(data){
-  // Pause saringan if open
-  if(document.getElementById('saringan-overlay').classList.contains('open')){
-    closeSaringan(); // pauses, preserves iframe
-  }
-  document.getElementById("screen-status").classList.remove("active");
-  document.getElementById("screen-called").classList.add("active");
-  var numPad = String(data.inputNum).padStart(4,"0");
-  document.getElementById("called-num-big").textContent = numPad;
-  var dest = (STAGE_LABELS[data.currentStage]||{}).name || data.currentStage;
-// Add room if doctor
-var doctorCp = (data.checkpoints||[]).filter(function(c){ return c.stage==="DOCTOR"; })[0];
-if(data.currentStage === "DOCTOR" && doctorCp && doctorCp.calledBy){
-  var rn = doctorCp.calledBy.replace(/\D/g,"");
-  if(rn) dest = "Bilik Doktor " + rn;
-}
-document.getElementById("called-sub").textContent =
-  (data.name ? data.name + " — " : "") + "Sila pergi ke " + dest + " sekarang";
-
-  showToast("calling",
-    "🔔 Nombor " + numPad + " Dipanggil!",
-    "Sila ke " + getStageLabel(data.currentStage) + " segera"
+  return (
+    now.getHours() * 60 +
+    now.getMinutes()
   );
+
 }
 
-// ══════════════════════════════════════════════════════
-//  POLLING
-// ══════════════════════════════════════════════════════
-function startPolling(){
-  clearInterval(_pollTimer);
-  _pollTimer = setInterval(function(){
-    if(!_queueNum) return;
-    fetchStatus(_queueNum, function(data){
-      if(!data || data.status !== "success") return;
-      showStatusScreen(data);
-    });
-  }, POLL_INTERVAL_MS);
+
+function getDayStartMinutes(){
+
+  return (
+    DAY_START_HOUR * 60 +
+    DAY_START_MINUTE
+  );
+
 }
 
-function stopPolling(){
-  clearInterval(_pollTimer);
-  _pollTimer = null;
+
+function getNightStartMinutes(){
+
+  return (
+    NIGHT_START_HOUR * 60 +
+    NIGHT_START_MINUTE
+  );
+
 }
-  
-function startSaringanWatcher() {
-  if(window._saringanWatcher) clearInterval(window._saringanWatcher);
-  window._saringanWatcher = setInterval(function() {
-    if(!_queueNum) return;
-    fetch((_selectedClinic ? _selectedClinic.url : "") + '?action=saringanStatus&num=' + _queueNum)
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if(data.found) {
-          clearInterval(window._saringanWatcher);
-          window._saringanWatcher = null;
-          console.log('[PRIMA] saringan result from GAS:', data);
-          receiveSaringanResult({
-            whooley: data.whooley,
-            phq: String(data.phq),
-            gad: String(data.gad)
-          });
-          document.getElementById('saringan-overlay').classList.remove('open');
-          window._saringanPaused = false;
+
+
+/*
+   TRUE = PRIMA should be running
+
+   07:00 → 17:20 = DAY
+   17:20 → 07:00 = NIGHT
+*/
+
+function shouldBeDayMode(){
+
+  const minutes =
+    getCurrentMinutes();
+
+  return (
+    minutes >= getDayStartMinutes() &&
+    minutes < getNightStartMinutes()
+  );
+
+}
+ /* ============================================================ 
+ STOP CAMERA COMPLETELY
+ ============================================================ */ 
+  function stopCamera(){ console.log( "Stopping camera..." ); 
+                        if(video.srcObject){ 
+                          const tracks = video.srcObject.getTracks(); 
+                          tracks.forEach(track => { try{ track.stop(); 
+                            }catch(error){ console.error( "Camera track stop error:", error ); } }); 
+                          video.srcObject = null; } video.pause(); } 
+  /* ============================================================ 
+  STOP AI ============================================================ */
+  function stopAI(){ console.log( "Stopping MediaPipe..." ); detectionRunning = false;
+                    /* MediaPipe detector has close() in current Tasks Vision versions. */
+                    if(detector){ try{ if( typeof detector.close === "function" ){ detector.close(); } 
+                                     }catch(error){ console.error( "Detector close error:", error ); } 
+                                } detector = null; }
+/* ============================================================
+   RECORDING TIME
+============================================================ */
+
+function isRecordingTime(){
+
+  /*
+     Recording is NEVER allowed
+     during night mode.
+  */
+
+  if(!currentDayMode){
+
+    return false;
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  const currentMinutes =
+    now.getHours() * 60 +
+    now.getMinutes();
+
+
+  /*
+     Check all recording windows.
+  */
+
+  return RECORDING_WINDOWS.some(
+    window => {
+
+      const [
+        startHour,
+        startMinute
+      ] =
+        window.start
+          .split(":")
+          .map(Number);
+
+
+      const [
+        endHour,
+        endMinute
+      ] =
+        window.end
+          .split(":")
+          .map(Number);
+
+
+      const start =
+        startHour * 60 +
+        startMinute;
+
+
+      const end =
+        endHour * 60 +
+        endMinute;
+
+
+      return (
+  currentMinutes >= start && 
+ currentMinutes < end
+);
+
+    }
+  );
+
+}
+
+
+/* ============================================================
+   FORMAT DATE
+============================================================ */
+
+function pad(number){
+
+  return String(number)
+    .padStart(2,"0");
+
+}
+
+
+function formatDate(date){
+
+  return (
+
+    date.getFullYear() +
+
+    "-" +
+
+    pad(
+      date.getMonth() + 1
+    ) +
+
+    "-" +
+
+    pad(
+      date.getDate()
+    )
+
+  );
+
+}
+
+
+function formatTime(date){
+
+  return (
+
+    pad(
+      date.getHours()
+    ) +
+
+    ":" +
+
+    pad(
+      date.getMinutes()
+    ) +
+
+    ":" +
+
+    pad(
+      date.getSeconds()
+    )
+
+  );
+
+}
+
+
+/* ============================================================
+   CREATE FILENAME
+============================================================ */
+
+function createRecordingFilename(
+  startDate,
+  endDate
+){
+
+  const date =
+    formatDate(startDate);
+
+
+  const start =
+    pad(
+      startDate.getHours()
+    ) +
+    pad(
+      startDate.getMinutes()
+    ) +
+    pad(
+      startDate.getSeconds()
+    );
+
+
+  const end =
+    pad(
+      endDate.getHours()
+    ) +
+    pad(
+      endDate.getMinutes()
+    ) +
+    pad(
+      endDate.getSeconds()
+    );
+
+
+  return (
+
+    "PRIMA_" +
+    date +
+    "_" +
+    start +
+    "-" +
+    end +
+    ".webm"
+
+  );
+
+}
+
+
+/* ============================================================
+   MEDIARECORDER FORMAT
+============================================================ */
+
+function getSupportedMimeType(){
+
+  const types = [
+
+    "video/webm;codecs=vp9",
+
+    "video/webm;codecs=vp8",
+
+    "video/webm"
+
+  ];
+
+
+  for(
+    const type of types
+  ){
+
+    if(
+      MediaRecorder.isTypeSupported(
+        type
+      )
+    ){
+
+      return type;
+
+    }
+
+  }
+
+
+  return "";
+
+}
+
+
+/* ============================================================
+   CREATE TIMESTAMPED VIDEO STREAM
+============================================================ */
+
+function createTimestampedVideoStream(){
+
+  /*
+     Create canvas only once.
+  */
+
+  if(!recordingCanvas){
+
+    recordingCanvas =
+      document.createElement(
+        "canvas"
+      );
+
+
+    recordingCanvas.width =
+      CAMERA_WIDTH;
+
+
+    recordingCanvas.height =
+      CAMERA_HEIGHT;
+
+
+    recordingCanvasContext =
+      recordingCanvas.getContext(
+        "2d"
+      );
+
+  }
+
+
+  /*
+     IMPORTANT:
+
+     Canvas continues running while
+     recording segments are changed.
+
+     Therefore the camera/timestamp stream
+     itself does NOT stop between files.
+  */
+
+  function drawFrame(){
+
+    /*
+       Canvas continues as long as
+       recording system is active.
+    */
+
+    if(
+      !recordingActive
+    ){
+
+      timestampAnimationFrame =
+        null;
+
+      return;
+
+    }
+
+
+    const ctx =
+      recordingCanvasContext;
+
+
+    /*
+       Draw camera frame.
+    */
+
+    if(
+      video.readyState >= 2
+    ){
+
+      ctx.drawImage(
+
+        video,
+
+        0,
+        0,
+
+        recordingCanvas.width,
+        recordingCanvas.height
+
+      );
+
+    }
+
+
+    /* ========================================================
+       TIMESTAMP
+    ======================================================== */
+
+    const now =
+      new Date();
+
+
+    const timestamp =
+
+      String(
+        now.getDate()
+      ).padStart(2,"0") +
+
+      "/" +
+
+      String(
+        now.getMonth() + 1
+      ).padStart(2,"0") +
+
+      "/" +
+
+      now.getFullYear() +
+
+      " " +
+
+      String(
+        now.getHours()
+      ).padStart(2,"0") +
+
+      ":" +
+
+      String(
+        now.getMinutes()
+      ).padStart(2,"0") +
+
+      ":" +
+
+      String(
+        now.getSeconds()
+      ).padStart(2,"0");
+
+
+    ctx.font =
+      "bold 18px Arial";
+
+
+    const textWidth =
+      ctx.measureText(
+        timestamp
+      ).width;
+
+
+    const padding = 8;
+
+
+    const x =
+      recordingCanvas.width -
+      textWidth -
+      padding * 2 -
+      10;
+
+
+    const y =
+      recordingCanvas.height -
+      10;
+
+
+    /*
+       Timestamp background.
+    */
+
+    ctx.fillStyle =
+      "rgba(0,0,0,0.65)";
+
+
+    ctx.fillRect(
+
+      x,
+
+      y - 25,
+
+      textWidth +
+      padding * 2,
+
+      25
+
+    );
+
+
+    /*
+       Timestamp text.
+    */
+
+    ctx.fillStyle =
+      "#ffffff";
+
+
+    ctx.textBaseline =
+      "middle";
+
+
+    ctx.fillText(
+
+      timestamp,
+
+      x + padding,
+
+      y - 12
+
+    );
+
+
+    /*
+       Continue approximately 30 FPS.
+    */
+
+    timestampAnimationFrame =
+      requestAnimationFrame(
+        drawFrame
+      );
+
+  }
+
+
+  /*
+     Create canvas stream ONLY ONCE.
+  */
+
+  if(
+    !recordingCanvasStream
+  ){
+
+    recordingCanvasStream =
+      recordingCanvas.captureStream(
+        30
+      );
+
+  }
+
+
+  /*
+     Start drawing.
+  */
+
+  if(
+    !timestampAnimationFrame
+  ){
+
+    timestampAnimationFrame =
+      requestAnimationFrame(
+        drawFrame
+      );
+
+  }
+
+
+  return recordingCanvasStream;
+
+}
+  /* ============================================================
+   START ONE OVERLAPPING RECORDING SLOT
+============================================================ */
+
+function startRecordingSlot(slotName){
+
+  const slot =
+    recorderSlots[slotName];
+
+
+  /*
+     Don't start the same slot twice.
+  */
+
+  if(
+    slot.active
+  ){
+
+    console.warn(
+      "Recorder slot already active:",
+      slotName
+    );
+
+    return;
+
+  }
+
+
+  /*
+     Must be day mode.
+  */
+
+  if(
+    !currentDayMode
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Camera must exist.
+  */
+
+  if(
+    !video.srcObject
+  ){
+
+    console.error(
+      "Camera stream unavailable."
+    );
+
+    return;
+
+  }
+
+
+  /*
+     Camera must be ready.
+  */
+
+  if(
+    video.readyState < 2
+  ){
+
+    console.warn(
+      "Camera video is not ready."
+    );
+
+    return;
+
+  }
+
+
+  /*
+     Reuse continuous timestamp stream.
+  */
+
+  const timestampStream =
+    createTimestampedVideoStream();
+
+
+  const mimeType =
+    getSupportedMimeType();
+
+
+  /*
+     Reset this slot.
+  */
+
+  slot.chunks =
+    [];
+
+
+  slot.startTime =
+    new Date();
+
+
+  try{
+
+    slot.recorder =
+      mimeType
+
+        ?
+
+        new MediaRecorder(
+          timestampStream,
+          {
+
+            mimeType:
+              mimeType,
+
+            videoBitsPerSecond:
+              VIDEO_BITRATE
+
+          }
+        )
+
+        :
+
+        new MediaRecorder(
+          timestampStream
+        );
+
+
+  }catch(error){
+
+    console.error(
+      "MediaRecorder failed:",
+      slotName,
+      error
+    );
+
+    return;
+
+  }
+
+
+  /*
+     Data collection.
+  */
+
+  slot.recorder.ondataavailable =
+    event => {
+
+      if(
+        event.data &&
+        event.data.size > 0
+      ){
+
+        slot.chunks.push(
+          event.data
+        );
+
+      }
+
+    };
+
+
+  /*
+     Finished.
+  */
+
+  slot.recorder.onstop =
+    () => {
+
+      finishRecordingSlot(
+        slotName
+      );
+
+    };
+
+
+  /*
+     Error.
+  */
+
+  slot.recorder.onerror =
+    event => {
+
+      console.error(
+        "MediaRecorder error:",
+        slotName,
+        event
+      );
+
+      slot.active =
+        false;
+
+    };
+
+
+  /*
+     Start recorder.
+  */
+
+  slot.recorder.start();
+
+
+  slot.active =
+    true;
+
+
+  recordingActive =
+    true;
+
+
+  statusBox.textContent =
+    "🔴 Recording";
+
+
+  console.log(
+    "================================="
+  );
+
+
+  console.log(
+    "Recorder started:",
+    slotName
+  );
+
+
+  console.log(
+    "Start:",
+    formatTime(
+      slot.startTime
+    )
+  );
+
+
+  console.log(
+    "================================="
+  );
+
+
+  /*
+     Stop this file after:
+
+     2 minutes + 2 seconds.
+  */
+
+  slot.stopTimer =
+    setTimeout(
+
+      () => {
+
+        if(
+          slot.recorder &&
+          slot.recorder.state ===
+            "recording"
+        ){
+
+          console.log(
+            "Stopping recorder:",
+            slotName
+          );
+
+
+          slot.recorder.stop();
+
         }
-      }).catch(function(){});
-  }, 3000);
-}
-// ══════════════════════════════════════════════════════
-//  RESET
-// ══════════════════════════════════════════════════════
-function resetToInput(){
-  stopPolling();
-  localStorage.removeItem("prima_queue_num");
-  localStorage.removeItem("prima_queue_time");
-  clearQueueNotificationTag();
-  _queueNum = null;
-  _calledNotified  = false;
-  _standbyNotified = false;
-  _saringanToken = null;    
-  _maskedPatient = null;    
-  var ms = document.getElementById("masked-patient-strip");
-  if (ms) ms.remove();    
-  window._saringanBubbleRevealed = false;
-  window._saringanDone = false;  
-  clearQueueNotificationTag();
-  document.getElementById("queue-input").value = "";
-  document.getElementById("input-error").textContent = "";
-  document.getElementById("screen-status").classList.remove("active");
-  document.getElementById("screen-called").classList.remove("active");
-  document.getElementById("screen-input").classList.add("active");
-  setTimeout(function(){
-    document.getElementById("queue-input").focus();
-  }, 300);
-}
 
-// ══════════════════════════════════════════════════════
-//  NOTIFICATIONS
-// ══════════════════════════════════════════════════════
-function requestNotifPermission(){
-  if(!("Notification" in window)){
-    showToast("standby","Tidak Disokong","Pelayar ini tidak menyokong notifikasi");
+      },
+
+      RECORDING_FILE_DURATION_MS
+
+    );
+
+}
+/* ============================================================
+   FORCE STOP ALL RECORDERS
+============================================================ */
+
+function forceStopAllRecorders(){
+
+  Object.values(
+    recorderSlots
+  ).forEach(
+    slot => {
+
+      if(
+        slot.stopTimer
+      ){
+
+        clearTimeout(
+          slot.stopTimer
+        );
+
+        slot.stopTimer =
+          null;
+
+      }
+
+
+      if(
+        slot.recorder &&
+        slot.recorder.state ===
+          "recording"
+      ){
+
+        try{
+
+          slot.recorder.stop();
+
+        }catch(error){
+
+          console.error(
+            "Recorder stop error:",
+            error
+          );
+
+        }
+
+      }
+
+    }
+  );
+
+
+  /*
+     Recording canvas can stop now.
+  */
+
+  recordingActive =
+    false;
+
+}
+/* ============================================================
+   FINISH ONE RECORDING SLOT
+============================================================ */
+
+function finishRecordingSlot(slotName){
+
+  const slot =
+    recorderSlots[slotName];
+
+
+  /*
+     Capture end time immediately.
+  */
+
+  const endDate =
+    new Date();
+
+
+  const startDate =
+    slot.startTime ||
+    new Date(
+      endDate.getTime() -
+      RECORDING_FILE_DURATION_MS
+    );
+
+
+  const filename =
+    createRecordingFilename(
+      startDate,
+      endDate
+    );
+
+
+  /*
+     Copy chunks immediately.
+
+     This allows the same slot to
+     be reused later.
+  */
+
+  const chunks =
+    slot.chunks.slice();
+
+
+  slot.chunks =
+    [];
+
+
+  /*
+     MIME type.
+  */
+
+  const mimeType =
+    slot.recorder &&
+    slot.recorder.mimeType
+
+      ?
+
+      slot.recorder.mimeType
+
+      :
+
+      "video/webm";
+
+
+  /*
+     Create completed video.
+  */
+
+  const blob =
+    new Blob(
+      chunks,
+      {
+        type: mimeType
+      }
+    );
+
+
+  console.log(
+    "================================="
+  );
+
+
+  console.log(
+    "Recording completed:",
+    slotName,
+    filename
+  );
+
+
+  console.log(
+    "Video size:",
+    (
+      blob.size /
+      1024 /
+      1024
+    ).toFixed(2) +
+    " MB"
+  );
+
+
+  console.log(
+    "================================="
+  );
+
+
+  /*
+     Upload independently.
+
+     IMPORTANT:
+     Do NOT await.
+  */
+
+  uploadRecording(
+    blob,
+    filename
+  ).catch(
+    error => {
+
+      console.error(
+        "Background upload error:",
+        error
+      );
+
+    }
+  );
+
+
+  /*
+     Release slot.
+  */
+
+  slot.recorder =
+    null;
+
+  slot.startTime =
+    null;
+
+  slot.active =
+    false;
+
+
+  /*
+     Overall recording state.
+  */
+
+  recordingActive =
+    recorderSlots.A.active ||
+    recorderSlots.B.active;
+
+
+  if(
+    currentDayMode
+  ){
+
+    statusBox.textContent =
+      recordingActive
+        ? "🔴 Recording"
+        : "Recording finished";
+
+  }
+
+}
+/* ============================================================ 
+ENTER NIGHT MODE 
+============================================================ */ 
+  async function enterNightMode(){ if(!currentDayMode){ return; } 
+                                  console.log( "=================================" ); 
+                                  console.log( "PRIMA ENTERING NIGHT MODE" ); 
+                                  console.log( "Camera OFF" ); 
+                                  console.log( "AI OFF" ); 
+                                  console.log( "Screen BLACK" ); 
+                                  console.log( "=================================" ); 
+                                  currentDayMode = false; 
+                                  /* Stop recording first. */ 
+                                  forceStopAllRecorders(); 
+                                  /* Stop welcome audio. */ 
+                                  try{ audio.pause(); audio.currentTime = 0; 
+                                     }catch(error){ console.error(error); } 
+                                  /* Stop announcement audio. */ 
+                                  try{ announcementBell.pause(); 
+                                      announcementBell.currentTime = 0;
+                                      announcementAudio.pause(); 
+                                      announcementAudio.currentTime = 0; }catch(error){ 
+                                    console.error(error); 
+                                  } announcementActive = false; 
+                                  /* Stop QR announcement. */
+                                  qrAnnouncementActive = false;
+                                  try{ scanQrAudio.pause(); scanQrAudio.currentTime = 0; }catch(error){ console.error(error); }
+                                  qrAnnouncementScreen.classList.remove( "show" );
+                                  /* Stop CCTV (the camera is released below). */
+                                  stopCCTV();
+                                  /* Hide all normal PRIMA UI. */ 
+                                  welcomeScreen.classList.remove( "show" ); 
+                                  announcementScreen.classList.remove( "show" ); 
+                                  scanArrow.classList.add( "announcementHidden" ); 
+                                  /* Stop AI first. */ stopAI(); 
+                                  /* Release camera hardware. */ stopCamera(); 
+                                  /* Hide ticker. */ 
+                                  const ticker = document.getElementById("ticker"); 
+                                  if(ticker){ ticker.style.display = "none"; } 
+                                  /* Hide QR. */ 
+                                  const qrPanel = document.getElementById("qrPanel"); 
+                                  if(qrPanel){ qrPanel.style.display = "none"; } 
+                                  /* Hide status. */ statusBox.style.display = "none"; 
+                                  /* Activate full black screen. */ nightMode.classList.add( "active" ); 
+                                  document.body.classList.add( "night-mode" ); 
+                                  /* Make absolutely sure video is hidden. */ 
+                                  video.style.display = "none"; 
+                                  /* Prevent accidental visitor trigger. */ 
+                                  triggered = false; showingWelcome = false; 
+                                  /* From this point onward, there is NO camera processing. */ }
+  /* ============================================================ 
+  ENTER DAY MODE 
+  ============================================================ */ 
+  async function enterDayMode(){ if(currentDayMode){ return; } if(systemStarting){ return; } 
+                                console.log( "=================================" ); 
+                                console.log( "PRIMA ENTERING DAY MODE" ); 
+                                console.log( "=================================" ); 
+                                systemStarting = true; try{ currentDayMode = true; 
+                                                           /* Remove black screen. */ 
+                                                           nightMode.classList.remove( "active" ); 
+                                                           document.body.classList.remove( "night-mode" ); 
+                                                           /* Restore UI. */ video.style.display = ""; 
+                                                           const ticker = document.getElementById("ticker"); 
+                                                           if(ticker){ ticker.style.display = ""; } 
+                                                           const qrPanel = document.getElementById("qrPanel"); 
+                                                           if(qrPanel){ qrPanel.style.display = ""; } 
+                                                           statusBox.style.display = ""; 
+                                                           scanArrow.classList.remove( "announcementHidden" ); 
+                                                           statusBox.textContent = "Starting camera..."; 
+                                                           /* Start camera. */ await initCamera(); 
+                                                           /* IMPORTANT: Check again after camera startup. If the system crossed 17:00 while initialization was happening, immediately return to night mode. */ 
+                                                           if(!shouldBeDayMode()){ await enterNightMode(); return; } startCCTV(); 
+                                                           statusBox.textContent = "Loading AI model...";
+                                                           /* Start MediaPipe. */ 
+                                                           await initAI(); 
+                                                           /* Again check operating time. */
+                                                           if(!shouldBeDayMode()){ await enterNightMode(); return; } 
+                                                           statusBox.textContent = "Ready"; /* Start face detection. */ 
+                                                           if(!detectionRunning){ detectionRunning = true; detectLoop(); } 
+                                                             /* Start recording scheduler immediately. This allows the system to start recording immediately if Chrome was opened after 07:20. */ 
+                                                           recordingScheduler(); 
+                                                           console.log( "PRIMA DAY MODE READY" ); 
+                                                          }catch(error){ console.error( "DAY MODE START ERROR:", error ); 
+                                                                        statusBox.textContent = "Camera permission required"; /* If camera/AI failed, don't leave the system half-active. */ 
+                                                                        stopCCTV(); stopAI(); stopCamera(); currentDayMode = false; }finally{ systemStarting = false; } } 
+  /* ============================================================ 
+  DAY / NIGHT CONTROLLER
+  ============================================================ */ 
+  async function updateDayNightMode(){ const shouldDay = shouldBeDayMode(); 
+                                      /* Currently NIGHT, but it is now operating time. */ 
+                                      if( shouldDay && !currentDayMode && !systemStarting ){ 
+                                        await enterDayMode(); return; } 
+                                      /* Currently DAY, but operating hours have ended. */ 
+                                      if( !shouldDay && currentDayMode && !systemStarting ){ 
+                                        await enterNightMode(); return; } } 
+  /* Check every 10 seconds. This is very lightweight. During night mode this is essentially the only timer doing meaningful work. */ 
+  setInterval( updateDayNightMode, 10000 );
+  /* ============================================================ 
+  CAMERA 
+  ============================================================ */ 
+  async function initCamera(){ 
+    /* If an old stream exists, release it first. */ 
+    stopCamera(); const stream = await navigator.mediaDevices.getUserMedia({ 
+      video:{ width:{ ideal:CAMERA_WIDTH }, 
+             height:{ ideal:CAMERA_HEIGHT }, 
+             facingMode:"user" }, 
+      audio:false }); 
+    /* Make sure the system is still supposed to be running. */ 
+    if(!shouldBeDayMode()){ stream .getTracks() .forEach(track => track.stop()); throw new Error( "Operating hours ended while camera was starting." ); 
+                          } video.srcObject = stream; return new Promise( (resolve,reject)=>{ 
+      video.onloadedmetadata = ()=>{ resolve(); }; video.onerror = error => { reject(error); }; } ); } 
+  /* ============================================================
+  CCTV (PeerJS - free, peer-to-peer)
+  ============================================================ */
+
+  async function sha256Hex( text ){
+
+    const bytes = new TextEncoder().encode( text );
+
+    const digest = await crypto.subtle.digest( "SHA-256", bytes );
+
+    return Array.from( new Uint8Array( digest ) )
+      .map( byte => byte.toString( 16 ).padStart( 2, "0" ) )
+      .join( "" );
+
+  }
+
+
+  async function getCCTVIceServers(){
+
+    const servers = [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" }
+    ];
+
+    if( CCTV_TURN_CREDENTIALS_URL ){
+
+      try{
+
+        const response = await fetch( CCTV_TURN_CREDENTIALS_URL );
+
+        const data = await response.json();
+
+        const extra = Array.isArray( data ) ? data : data.iceServers;
+
+        if( Array.isArray( extra ) ){ servers.push( ...extra ); }
+
+      }catch( error ){
+
+        console.warn( "TURN credentials unavailable, using STUN only:", error );
+
+      }
+
+    }
+
+    return servers;
+
+  }
+
+
+  /* ------------------------------------------------------------
+     START
+  ------------------------------------------------------------ */
+
+  async function startCCTV(){
+
+    /* CCTV only works during DAY MODE. */
+    if( !currentDayMode ){ console.log( "CCTV not started: NIGHT MODE" ); return; }
+
+    /* Camera must already be running. */
+    if( !video.srcObject ){ console.warn( "CCTV cannot start: camera unavailable." ); return; }
+
+    if( typeof Peer === "undefined" ){ console.warn( "CCTV cannot start: PeerJS library not loaded." ); return; }
+
+    /* Don't create duplicate connections. */
+    if( cctvPeer || cctvStarting ){ return; }
+
+    cctvStarting = true;
+
+    try{
+
+      const iceServers = await getCCTVIceServers();
+
+      /* Night mode may have started while we were waiting. */
+      if( !currentDayMode || cctvPeer ){ return; }
+
+      console.log( "Starting PRIMA CCTV..." );
+
+      const peer = new Peer( CCTV_PEER_ID, { debug: 1, config: { iceServers } } );
+
+      cctvPeer = peer;
+
+      peer.on( "open", id => {
+        cctvRestartDelay = 5000;
+        console.log( "CCTV ready:", id );
+      } );
+
+      peer.on( "connection", handleCCTVConnection );
+
+      /* Signalling lost: existing viewers keep streaming, we just re-register. */
+      peer.on( "disconnected", () => scheduleCCTVReconnect( peer ) );
+
+      peer.on( "close", () => handleCCTVPeerLost( peer ) );
+
+      peer.on( "error", error => {
+
+        console.warn( "CCTV peer error:", error.type );
+
+        if( peer.destroyed ){ handleCCTVPeerLost( peer ); }
+        else if( peer.disconnected ){ scheduleCCTVReconnect( peer ); }
+
+      } );
+
+    }catch( error ){
+
+      console.error( "CCTV start error:", error );
+
+      scheduleCCTVRestart();
+
+    }finally{
+
+      cctvStarting = false;
+
+    }
+
+  }
+
+
+  /* ------------------------------------------------------------
+     RECOVERY
+  ------------------------------------------------------------ */
+
+  function handleCCTVPeerLost( peer ){
+
+    if( cctvPeer !== peer ){ return; }
+
+    cctvPeer = null;
+
+    dropAllCCTVViewers();
+
+    scheduleCCTVRestart();
+
+  }
+
+
+  function scheduleCCTVRestart(){
+
+    if( cctvRestartTimer || !currentDayMode ){ return; }
+
+    cctvRestartTimer = setTimeout( () => {
+
+      cctvRestartTimer = null;
+
+      startCCTV();
+
+    }, cctvRestartDelay );
+
+    /* 5s, 10s, 20s, 40s, then every 60s. */
+    cctvRestartDelay = Math.min( cctvRestartDelay * 2, 60000 );
+
+  }
+
+
+  function scheduleCCTVReconnect( peer ){
+
+    if( cctvReconnectTimer || !currentDayMode ){ return; }
+
+    cctvReconnectTimer = setTimeout( () => {
+
+      cctvReconnectTimer = null;
+
+      if( cctvPeer === peer && !peer.destroyed && peer.disconnected && currentDayMode ){
+
+        try{ peer.reconnect(); }
+        catch( error ){ console.warn( "CCTV reconnect failed:", error ); }
+
+      }
+
+    }, 5000 );
+
+  }
+
+
+  /* Safety net: checks every 15 seconds that the camera is reachable. */
+
+  function cctvWatchdog(){
+
+    if( !currentDayMode || systemStarting || !video.srcObject ){ return; }
+
+    if( !cctvPeer ){
+
+      if( !cctvRestartTimer ){ startCCTV(); }
+
+    }else if( cctvPeer.disconnected && !cctvPeer.destroyed ){
+
+      scheduleCCTVReconnect( cctvPeer );
+
+    }
+
+  }
+
+  setInterval( cctvWatchdog, 15000 );
+
+
+  /* ------------------------------------------------------------
+     VIEWERS
+  ------------------------------------------------------------ */
+
+  function handleCCTVConnection( conn ){
+
+    let authenticated = false;
+
+    let attempts = 0;
+
+    const send = message => {
+      try{ conn.send( message ); }
+      catch( error ){ console.warn( "CCTV send failed:", error ); }
+    };
+
+    const closeLater = ms => setTimeout( () => {
+      try{ conn.close(); }catch( error ){}
+    }, ms );
+
+    /* Drop connections that never log in. */
+    const authTimeout = setTimeout( () => {
+      if( !authenticated ){ try{ conn.close(); }catch( error ){} }
+    }, 20000 );
+
+    conn.on( "data", async message => {
+
+      if( authenticated || !message || message.type !== "auth" ){ return; }
+
+      attempts++;
+
+      const passOk =
+        typeof message.pass === "string" &&
+        message.pass.length > 0 &&
+        message.pass.length <= 100 &&
+        ( await sha256Hex( message.pass ) ) === CCTV_PASS_HASH;
+
+      if( !passOk ){
+
+        send( { type: "auth-failed" } );
+
+        if( attempts >= 3 ){ closeLater( 500 ); }
+
+        return;
+
+      }
+
+      if( !currentDayMode || !cctvPeer || !video.srcObject ){
+
+        send( { type: "offline" } );
+
+        return;
+
+      }
+
+      if( cctvViewers.size >= CCTV_MAX_VIEWERS && !cctvViewers.has( conn.peer ) ){
+
+        send( { type: "busy" } );
+
+        return;
+
+      }
+
+      authenticated = true;
+
+      clearTimeout( authTimeout );
+
+      send( { type: "auth-ok" } );
+
+      /* IMPORTANT: reuse the EXISTING PRIMA camera. No second getUserMedia(). */
+      const call = cctvPeer.call( conn.peer, video.srcObject );
+
+      cctvViewers.set( conn.peer, { conn, call } );
+
+      cctvActive = true;
+
+      limitCCTVBitrate( call );
+
+      call.on( "close", () => dropCCTVViewer( conn.peer ) );
+
+      call.on( "error", () => dropCCTVViewer( conn.peer ) );
+
+      console.log( "CCTV viewer connected:", conn.peer );
+
+    } );
+
+    conn.on( "close", () => {
+
+      clearTimeout( authTimeout );
+
+      const viewer = cctvViewers.get( conn.peer );
+
+      if( viewer && viewer.conn === conn ){ dropCCTVViewer( conn.peer ); }
+
+    } );
+
+    conn.on( "error", error => console.warn( "CCTV data connection error:", error ) );
+
+  }
+
+
+  function dropCCTVViewer( id ){
+
+    const viewer = cctvViewers.get( id );
+
+    if( !viewer ){ return; }
+
+    cctvViewers.delete( id );
+
+    try{ viewer.call.close(); }catch( error ){}
+
+    try{ viewer.conn.close(); }catch( error ){}
+
+    cctvActive = cctvViewers.size > 0;
+
+    console.log( "CCTV viewer disconnected:", id );
+
+  }
+
+
+  function dropAllCCTVViewers(){
+
+    Array.from( cctvViewers.keys() ).forEach( dropCCTVViewer );
+
+  }
+
+
+  function limitCCTVBitrate( call ){
+
+    const pc = call.peerConnection;
+
+    if( !pc ){ return; }
+
+    pc.addEventListener( "connectionstatechange", () => {
+
+      if( pc.connectionState !== "connected" ){ return; }
+
+      pc.getSenders().forEach( sender => {
+
+        if( !sender.track || sender.track.kind !== "video" ){ return; }
+
+        try{
+
+          const params = sender.getParameters();
+
+          if( !params.encodings || !params.encodings.length ){ params.encodings = [ {} ]; }
+
+          params.encodings[0].maxBitrate = CCTV_MAX_BITRATE_KBPS * 1000;
+
+          sender.setParameters( params ).catch( () => {} );
+
+        }catch( error ){
+
+          console.warn( "CCTV bitrate limit failed:", error );
+
+        }
+
+      } );
+
+    } );
+
+  }
+
+
+  /* ------------------------------------------------------------
+     STOP
+  ------------------------------------------------------------ */
+
+  function stopCCTV(){
+
+    console.log( "Stopping PRIMA CCTV..." );
+
+    clearTimeout( cctvRestartTimer );
+
+    cctvRestartTimer = null;
+
+    clearTimeout( cctvReconnectTimer );
+
+    cctvReconnectTimer = null;
+
+    cctvRestartDelay = 5000;
+
+    dropAllCCTVViewers();
+
+    const peer = cctvPeer;
+
+    cctvPeer = null;
+
+    if( peer ){
+
+      try{ peer.destroy(); }
+      catch( error ){ console.error( error ); }
+
+    }
+
+    cctvActive = false;
+
+  }
+
+  /* ============================================================
+  ANNOUNCEMENT
+  ============================================================ */ 
+  async function playGeneralAnnouncement(){ 
+    /* NEVER run announcement in night mode. */ 
+    if(!currentDayMode){ return; } 
+    if(announcementActive){ return; }
+    announcementActive = true; console.log( "GENERAL ANNOUNCEMENT STARTED" ); 
+    /* Stop welcome audio. */ 
+    audio.pause(); audio.currentTime = 0;
+    welcomeScreen.classList.remove( "show" ); 
+    showingWelcome = false; triggered = false;
+    scanArrow.classList.add( "announcementHidden" );
+    announcementImage.src = NASIHAT_IMAGE;
+    announcementScreen.classList.add( "show" );
+    statusBox.textContent = "📢 Pengumuman"; 
+    announcementBell.src = BELL_URL; announcementBell.currentTime = 0; try{
+      await announcementBell.play(); await waitForAudioEnd( announcementBell );
+    }catch(error){ console.error( "Bell playback failed:", error ); }
+      /* If night mode started during the bell, stop immediately. */ 
+    if(!currentDayMode){ announcementActive = false; return; } 
+    announcementAudio.src = NASIHAT_AUDIO; announcementAudio.currentTime = 0; try{
+      await announcementAudio.play(); await waitForAudioEnd( announcementAudio );
+    }catch(error){ console.error( "Nasihat playback failed:", error ); } 
+    announcementScreen.classList.remove( "show" ); scanArrow.classList.remove( "announcementHidden" ); 
+    announcementActive = false; statusBox.textContent = recordingActive ? "🔴 Recording" : "Ready for next visitor"; 
+    console.log( "GENERAL ANNOUNCEMENT FINISHED" ); }
+  function waitForAudioEnd( audioElement ){
+
+    /* Also resolves on error / pause / timeout, so a missing or
+       blocked audio file can never freeze the announcement. */
+
+    return new Promise(resolve => {
+
+      const events = [ "ended", "error", "pause" ];
+
+      let timer = null;
+
+      const finished = () => {
+
+        clearTimeout( timer );
+
+        events.forEach( name => audioElement.removeEventListener( name, finished ) );
+
+        resolve();
+
+      };
+
+      events.forEach( name => audioElement.addEventListener( name, finished ) );
+
+      timer = setTimeout( finished, 120000 );
+
+    });
+
+  }
+/* ============================================================ 
+ANNOUNCEMENT SCHEDULER
+============================================================ */ 
+  function announcementScheduler(){ 
+    /* Don't even process announcements during night mode. */ 
+    if(!currentDayMode){ return; } if(announcementActive || qrAnnouncementActive){ return; } 
+    const now = new Date(); const hours = String( now.getHours() ).padStart(2,"0");
+    const minutes = String( now.getMinutes() ).padStart(2,"0");
+    const currentTime = hours + ":" + minutes; if( 
+      ANNOUNCEMENT_TIMES.includes( currentTime ) 
+    ){
+      const announcementKey = formatDate(now) + "_" + currentTime;
+      if( announcementKey !== lastAnnouncementKey ){ lastAnnouncementKey = announcementKey; playGeneralAnnouncement(); } } } 
+  setInterval( announcementScheduler, 1000 ); 
+
+
+  /* ============================================================
+  QR ANNOUNCEMENT
+  ============================================================ */
+
+  function delay( ms ){
+
+    return new Promise( resolve => setTimeout( resolve, ms ) );
+
+  }
+
+
+  /* Plays an audio file and resolves with why it finished:
+     "ended", "pause", "error", "play-failed" or "timeout". */
+
+  function playAudioToEnd( audioElement, maxMs = 120000 ){
+
+    return new Promise( resolve => {
+
+      const events = [ "ended", "error", "pause" ];
+
+      let finishedAlready = false;
+
+      let timer = null;
+
+      const finish = reason => {
+
+        if( finishedAlready ){ return; }
+
+        finishedAlready = true;
+
+        clearTimeout( timer );
+
+        events.forEach( name => audioElement.removeEventListener( name, onEvent ) );
+
+        resolve( reason );
+
+      };
+
+      const onEvent = event => finish( event.type );
+
+      events.forEach( name => audioElement.addEventListener( name, onEvent ) );
+
+      timer = setTimeout( () => finish( "timeout" ), maxMs );
+
+      audioElement.currentTime = 0;
+
+      audioElement.play().catch( error => {
+
+        console.error( "QR audio playback failed:", error );
+
+        finish( "play-failed" );
+
+      } );
+
+    } );
+
+  }
+
+
+  async function playQrAnnouncement(){
+
+    if( !currentDayMode || qrAnnouncementActive || announcementActive ){ return; }
+
+    qrAnnouncementActive = true;
+
+    console.log( "QR ANNOUNCEMENT STARTED" );
+
+    /* Stop the normal welcome function (human detection is paused
+       automatically while qrAnnouncementActive is true). */
+
+    try{ audio.pause(); audio.currentTime = 0; }
+    catch( error ){ console.error( error ); }
+
+    welcomeScreen.classList.remove( "show" );
+
+    showingWelcome = false;
+
+    triggered = false;
+
+    scanArrow.classList.add( "announcementHidden" );
+
+    qrAnnouncementScreen.classList.add( "show" );
+
+    statusBox.textContent = "📱 Imbas QR";
+
+    const result = await playAudioToEnd( scanQrAudio );
+
+    /* scanqr.mp3 missing or blocked: keep the QR visible for a fixed time. */
+
+    if( result === "play-failed" || result === "error" ){ await delay( QR_FALLBACK_MS ); }
+
+    /* Night mode already cleaned everything up. */
+
+    if( !currentDayMode ){ qrAnnouncementActive = false; return; }
+
+    /* Back to normal function. */
+
+    qrAnnouncementScreen.classList.remove( "show" );
+
+    scanArrow.classList.remove( "announcementHidden" );
+
+    qrAnnouncementActive = false;
+
+    statusBox.textContent = recordingActive ? "🔴 Recording" : "Ready for next visitor";
+
+    console.log( "QR ANNOUNCEMENT FINISHED" );
+
+  }
+
+
+  function qrAnnouncementScheduler(){
+
+    if( !currentDayMode || qrAnnouncementActive || announcementActive ){ return; }
+
+    const now = new Date();
+
+    const currentTime = pad( now.getHours() ) + ":" + pad( now.getMinutes() );
+
+    if( !QR_ANNOUNCEMENT_TIMES.includes( currentTime ) ){ return; }
+
+    const key = formatDate( now ) + "_" + currentTime;
+
+    if( key === lastQrAnnouncementKey ){ return; }
+
+    lastQrAnnouncementKey = key;
+
+    playQrAnnouncement();
+
+  }
+
+  setInterval( qrAnnouncementScheduler, 1000 );
+
+
+  /* ============================================================
+  KEEP SCREEN AWAKE
+  ============================================================ */
+
+  /* Screen Wake Lock keeps the display on (black screen at night),
+     so nobody has to switch it on in the morning. The browser can
+     drop the lock (tab hidden, reload), so it is re-requested here. */
+
+  async function requestWakeLock(){
+
+    if( !( "wakeLock" in navigator ) ){
+
+      console.warn( "Screen Wake Lock is not supported on this browser." );
+
+      return;
+
+    }
+
+    if( wakeLock && !wakeLock.released ){ return; }
+
+    try{
+
+      wakeLock = await navigator.wakeLock.request( "screen" );
+
+      wakeLock.addEventListener( "release", () => console.log( "Screen wake lock released." ) );
+
+      console.log( "Screen wake lock active." );
+
+    }catch( error ){
+
+      console.warn( "Screen wake lock failed:", error );
+
+    }
+
+  }
+
+
+  /* Every 30 minutes: re-acquire the lock and, at night, show a dim
+     clock for 10 seconds, then return to the black empty screen. */
+
+  function keepScreenAwake(){
+
+    requestWakeLock();
+
+    if( currentDayMode ){ return; }
+
+    nightPulse.textContent = new Date().toLocaleTimeString( "en-GB", { hour: "2-digit", minute: "2-digit" } );
+
+    nightPulse.classList.add( "on" );
+
+    setTimeout( () => nightPulse.classList.remove( "on" ), NIGHT_PULSE_MS );
+
+  }
+
+  document.addEventListener( "visibilitychange", () => {
+
+    if( document.visibilityState === "visible" ){ requestWakeLock(); }
+
+  } );
+
+  setInterval( keepScreenAwake, KEEP_AWAKE_INTERVAL_MS );
+  /* ============================================================
+   DARAH AUDIO SCHEDULER
+   Sunday – Wednesday
+   07:50 and 07:52
+   Active window: 07:40 – 07:59
+============================================================ */
+
+const DARAH_TIMES = ["07:50","07:51","07:52","07:53","07:54","07:55","07:56","07:57","07:58","07:59","08:01"];
+
+let lastDarahKey = "";
+function isDarahDay(){
+  const day =
+    new Date().getDay();
+
+  /*
+     JavaScript:
+     Sunday    = 0
+     Monday    = 1
+     Tuesday   = 2
+     Wednesday = 3
+     Thursday  = 4
+     Friday    = 5
+     Saturday  = 6
+  */
+
+  return (
+    day >= 0 &&
+    day <= 3
+  );
+
+}
+async function playDarah(){
+  /*
+     Never play during night mode.
+  */
+  if(!currentDayMode){
+    return;
+  }
+  /*
+     Sunday – Wednesday only.
+  */
+
+  if(!isDarahDay()){
     return;
   }
 
-  Notification.requestPermission().then(function(perm){
-    _notifGranted = perm === "granted";
-    updateNotifBtn();
+  try{
 
-    if(_notifGranted){
-       if(window.OneSignalDeferred){
-    OneSignalDeferred.push(async function(OneSignal){
-      try{
-        // Add queue tag
-        await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
-        
-        // Re-capture Player ID now that permission is granted
-        var id = await OneSignal.User.PushSubscription.id;
-        if(id){
-          _playerID = id;
-          localStorage.setItem("prima_player_id", id);
-          console.log("[PRIMA] Player ID refreshed after permission:", id);
-          // Resave to GAS with current queue number
-          if(_queueNum){
-            fetch(_selectedClinic.url + "?action=savePlayerID&num=" +
-              encodeURIComponent(_queueNum) + "&pid=" + encodeURIComponent(id))
-              .catch(function(){});
+    darahAudio.pause();
+
+    darahAudio.currentTime = 0;
+
+    await darahAudio.play();
+
+    console.log(
+      "🩸 darah.mp3 played"
+    );
+
+  }catch(error){
+
+    console.error(
+      "Darah audio playback failed:",
+      error
+    );
+
+  }
+
+}
+
+
+function darahScheduler(){
+
+  /*
+     Don't process during night mode.
+  */
+
+  if(!currentDayMode){
+    return;
+  }
+
+  /*
+     Sunday – Wednesday only.
+  */
+
+  if(!isDarahDay()){
+    return;
+  }
+
+  const now =
+    new Date();
+
+  const hours =
+    String(
+      now.getHours()
+    ).padStart(2,"0");
+
+  const minutes =
+    String(
+      now.getMinutes()
+    ).padStart(2,"0");
+
+  const currentTime =
+    hours + ":" + minutes;
+
+  /*
+     Only allow 07:40 – 07:59.
+  */
+
+  const currentMinutes =
+    now.getHours() * 60 +
+    now.getMinutes();
+
+  const windowStart =
+    7 * 60 + 40;
+
+  const windowEnd =
+    7 * 60 + 59;
+
+  if(
+    currentMinutes <
+      windowStart ||
+    currentMinutes >
+      windowEnd
+  ){
+    return;
+  }
+
+  /*
+     Play at exactly:
+     07:50
+     07:52
+  */
+
+  if(
+    DARAH_TIMES.includes(
+      currentTime
+    )
+  ){
+
+    const darahKey =
+      formatDate(now) +
+      "_" +
+      currentTime;
+
+    /*
+       Prevent the same audio
+       from playing repeatedly
+       during the same minute.
+    */
+
+    if(
+      darahKey !==
+      lastDarahKey
+    ){
+
+      lastDarahKey =
+        darahKey;
+
+      playDarah();
+
+    }
+
+  }
+
+}
+
+
+setInterval(
+  darahScheduler,
+  1000
+);
+  /* ============================================================
+  AI INITIALIZATION 
+  ============================================================ */
+  async function initAI(){
+    const vision = await FilesetResolver.forVisionTasks( "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm" );
+    /* Check operating time before creating the AI detector. */ 
+    if(!shouldBeDayMode()){ throw new Error( "AI initialization attempted outside operating hours." ); }
+    detector = await FaceDetector.createFromOptions( vision, { 
+      baseOptions:{ modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" }, 
+      runningMode:"VIDEO", minDetectionConfidence:0.6 } ); } 
+  /* ============================================================
+  CLOCK 
+  ============================================================ */ 
+  function updateClock(){ 
+    /* Don't update DOM unnecessarily during night mode. */ 
+    if(!currentDayMode){ return; }
+    const now = new Date();
+    const time = now.toLocaleTimeString( "en-GB" ); 
+    const date = now.toLocaleDateString( "en-GB", { 
+      weekday:"long", 
+      day:"2-digit", 
+      month:"long",
+      year:"numeric" } ); 
+    document.getElementById("clock") .textContent = time; document.getElementById("date") .textContent = date; }
+  /* Clock can remain every second. It is not running camera/AI. */ 
+  setInterval( updateClock, 1000 );
+/* ============================================================
+   UPLOAD VIDEO
+============================================================ */
+
+async function uploadRecording(
+  blob,
+  filename
+){
+
+  if(
+    !UPLOAD_URL
+  ){
+
+    console.warn(
+      "Google Apps Script upload URL has not been configured."
+    );
+
+    return;
+
+  }
+
+
+  /*
+     Upload is running independently.
+
+     This flag is informational only.
+
+     It MUST NOT prevent the next recording.
+  */
+
+  uploadInProgress =
+    true;
+
+
+  console.log(
+    "Uploading:",
+    filename
+  );
+
+
+  try{
+
+    const base64 =
+      await blobToBase64(
+        blob
+      );
+
+
+    const payload = {
+
+      filename:
+        filename,
+
+      mimeType:
+        blob.type ||
+        "video/webm",
+
+      data:
+        base64
+
+    };
+
+
+    const response =
+      await fetch(
+
+        UPLOAD_URL,
+
+        {
+
+          method:
+            "POST",
+
+          headers:{
+
+            "Content-Type":
+              "text/plain;charset=utf-8"
+
+          },
+
+          body:
+            JSON.stringify(
+              payload
+            )
+
+        }
+
+      );
+
+
+    const resultText =
+      await response.text();
+
+
+    console.log(
+      "Upload response:",
+      resultText
+    );
+
+
+    if(
+      currentDayMode
+    ){
+
+      statusBox.textContent =
+        recordingActive
+          ? "🔴 Recording"
+          : "Uploaded: " + filename;
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "Upload failed:",
+      filename,
+      error
+    );
+
+
+    if(
+      currentDayMode
+    ){
+
+      statusBox.textContent =
+        recordingActive
+          ? "🔴 Recording • Upload failed"
+          : "Upload failed: " + filename;
+
+    }
+
+  }
+
+
+  uploadInProgress =
+    false;
+
+}
+
+
+/* ============================================================
+   BLOB → BASE64
+============================================================ */
+
+function blobToBase64(
+  blob
+){
+
+  return new Promise(
+
+    (
+      resolve,
+      reject
+    ) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onloadend =
+        () => {
+
+          const result =
+            reader.result;
+
+
+          const base64 =
+            result.split(",")[1];
+
+
+          resolve(
+            base64
+          );
+
+        };
+
+
+      reader.onerror =
+        reject;
+
+
+      reader.readAsDataURL(
+        blob
+      );
+
+    }
+
+  );
+
+}
+
+/* ============================================================
+   OVERLAP RECORDING SCHEDULER
+============================================================ */
+
+function recordingScheduler(){
+
+  /*
+     Never record at night.
+  */
+
+  if(
+    !currentDayMode
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Only record inside recording windows.
+  */
+
+  if(
+    !isRecordingTime()
+  ){
+
+    return;
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  /*
+     We schedule based on the exact
+     2-minute boundary.
+
+     Example:
+
+     07:10:00
+     07:12:00
+     07:14:00
+     07:16:00
+  */
+
+
+  const seconds =
+    now.getSeconds();
+
+
+  const milliseconds =
+    now.getMilliseconds();
+
+
+  /*
+     Only trigger near the exact
+     beginning of a minute.
+  */
+
+  if(
+    seconds !== 0 ||
+    milliseconds > 900
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Total minutes since midnight.
+  */
+
+  const totalMinutes =
+    now.getHours() * 60 +
+    now.getMinutes();
+
+
+  /*
+     Find the matching recording window.
+  */
+
+  const activeWindow =
+    RECORDING_WINDOWS.find(
+      window => {
+
+        const [
+          startHour,
+          startMinute
+        ] =
+          window.start
+            .split(":")
+            .map(Number);
+
+
+        const startMinutes =
+          startHour * 60 +
+          startMinute;
+
+
+        return (
+          totalMinutes >=
+          startMinutes
+        );
+
+      }
+    );
+
+
+  if(
+    !activeWindow
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Calculate minutes from the
+     recording window start.
+  */
+
+  const [
+    startHour,
+    startMinute
+  ] =
+    activeWindow.start
+      .split(":")
+      .map(Number);
+
+
+  const windowStartMinutes =
+    startHour * 60 +
+    startMinute;
+
+
+  const minutesFromWindowStart =
+    totalMinutes -
+    windowStartMinutes;
+
+
+  /*
+     Only every 2 minutes.
+  */
+
+  if(
+    minutesFromWindowStart %
+    2 !== 0
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Alternate recorder slots.
+
+     Segment 0 → A
+     Segment 1 → B
+     Segment 2 → A
+     Segment 3 → B
+  */
+
+  const segmentNumber =
+    Math.floor(
+      minutesFromWindowStart /
+      2
+    );
+
+
+  const slotName =
+    segmentNumber %
+    2 === 0
+
+      ?
+
+      "A"
+
+      :
+
+      "B";
+
+
+  /*
+     Start only if free.
+  */
+
+  if(
+    !recorderSlots[
+      slotName
+    ].active
+  ){
+
+    startRecordingSlot(
+      slotName
+    );
+
+  }
+}
+setInterval(recordingScheduler, 1000);
+
+/* ============================================================
+   FACE DETECTION
+============================================================ */
+
+async function detectLoop(){
+
+  /*
+     Stop the animation loop completely
+     when night mode starts.
+  */
+
+  if(
+    !currentDayMode ||
+    !detectionRunning
+  ){
+
+    return;
+
+  }
+
+
+  /*
+     Human detection is paused during QR announcements
+     and outside welcome hours (16:30 - 07:40).
+  */
+
+  const detectionAllowed = isDetectionAllowed();
+
+  if(!detectionAllowed){
+    triggered = false;
+  }
+
+  if(
+    detector &&
+    video.readyState >= 2 &&
+    detectionAllowed
+  ){
+
+    try{
+
+      const result =
+        detector.detectForVideo(
+          video,
+          performance.now()
+        );
+
+
+      let closePerson = false;
+
+
+      if(
+        result.detections.length
+      ){
+
+        const box =
+          result
+            .detections[0]
+            .boundingBox;
+
+
+        const area =
+          (
+            box.width *
+            box.height
+          ) /
+          (
+            video.videoWidth *
+            video.videoHeight
+          );
+
+
+        if(
+          area > 0.08
+        ){
+
+          closePerson = true;
+
+          lastSeen =
+            Date.now();
+
+        }
+
+      }
+
+
+      /*
+         Visitor detection.
+      */
+
+      if(
+        closePerson &&
+        !triggered &&
+        !showingWelcome &&
+        !announcementActive
+      ){
+
+        playWelcome();
+
+      }
+
+
+      if(
+        triggered
+      ){
+
+        if(
+          Date.now() -
+          lastSeen >
+          2000
+        ){
+
+          triggered = false;
+
+
+          if(currentDayMode){
+
+            statusBox.textContent =
+              recordingActive
+              ?
+              "🔴 Recording"
+              :
+              "Ready for next visitor";
           }
         }
-      } catch(e){
-        console.warn("[PRIMA] Post-permission capture failed:", e);
       }
-    });
-  }
-  showToast("calling","✅ Notifikasi Dibenarkan",
-    "Anda akan diberitahu walaupun apl ditutup");
 
-      // Trigger Add to Home Screen prompt if available
-      if(window._deferredPrompt){
-        window._deferredPrompt.prompt();
-        window._deferredPrompt.userChoice.then(function(result){
-          console.log("[PWA] Install choice:", result.outcome);
-          window._deferredPrompt = null;
-          document.getElementById("install-hint").style.display = "none";
-        });
+    }catch(error){
+      /*
+         Ignore individual AI frames.
+
+         If the AI was closed because
+         night mode started, simply exit.
+      */
+
+      if(currentDayMode){
+
+        console.error(
+          "Face detection error:",
+          error
+        );
       }
-    } else {
-      showToast("standby","Notifikasi Ditolak",
-        "Benarkan notifikasi dalam tetapan pelayar untuk menerima amaran");
     }
-  });
-}
-function clearQueueNotificationTag(){
-  if(window.OneSignalDeferred){
-    OneSignalDeferred.push(async function(OneSignal){
-      try{
-        await OneSignal.User.removeTag("queue_num");
-        console.log("[PRIMA] OneSignal queue tag cleared");
-      }catch(e){
-        console.log("Remove tag failed", e);
-      }
-    });
-  }
-}
-  
-function updateNotifBtn(){
-  var btn = document.getElementById("btn-notif");
-  var card = document.getElementById("notif-card");
-  if(!("Notification" in window)){
-    card.style.display = "none"; return;
-  }
-  if(Notification.permission === "granted"){
-    _notifGranted = true;
-    btn.textContent = "✓ Aktif";
-    btn.classList.add("granted");
-    btn.disabled = true;
-  } else {
-    btn.textContent = "Benarkan";
-    btn.classList.remove("granted");
-    btn.disabled = false;
-  }
-}
-
-function sendNotification(title, body){
-  // Use SW to show notification — works in background
-  if(window._swReg && _notifGranted){
-    window._swReg.showNotification(title, {
-      body    : body,
-      icon    : "prima.png",
-      badge   : "prima.png",
-      vibrate : [200, 100, 200],
-      tag     : "prima-queue",
-      renotify: true,
-      actions : [{ action:"open", title:"Buka Apl" }]
-    });
-  } else if(_notifGranted && "Notification" in window){
-    // Fallback for browsers without SW support
-    new Notification(title, { body:body, icon:"prima.png" });
-  }
-}
-
-function playNotifSound(){
-  try {
-    var aud = document.getElementById("aud-notify");
-    aud.currentTime = 0;
-    aud.play().catch(function(){});
-  } catch(e){}
-}
-  // Global state
-window._saringanDone = false;
-window._saringanPaused = false;
-  function fetchQueuePrefill(qnum) {
-  console.log("[PREFILL] Fetching prefill for qnum:", qnum);
-var url = (_selectedClinic ? _selectedClinic.url : "") + "?action=getQueuePrefill&qnum=" + encodeURIComponent(qnum);
-  fetch(url)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      console.log("[PREFILL] Response:", JSON.stringify(data));
-      if (data.status === "ok") {
-        _saringanToken  = data.token;
-        _maskedPatient  = data.masked;
-        renderMaskedBadge(data.masked);
-      } else {
-        console.warn("[PREFILL] Not found or error:", data.message);
-        _saringanToken = null;
-        _maskedPatient = null;
-      }
-    })
-    .catch(function(e) {
-      console.error("[PREFILL] Fetch error:", e);
-    });
-}
-  function renderMaskedBadge(masked) {
-  console.log("[PREFILL] Rendering masked badge:", JSON.stringify(masked));
-  // Remove existing masked badge if any
-  var existing = document.getElementById("masked-patient-strip");
-  if (existing) existing.remove();
-
-  if (!masked || !masked.name) return;
-
-  var strip = document.createElement("div");
-  strip.id = "masked-patient-strip";
-  strip.style.cssText = [
-    "background:rgba(0,200,150,.07)",
-    "border:1px solid rgba(0,200,150,.25)",
-    "border-radius:12px",
-    "padding:10px 14px",
-    "margin-bottom:14px",
-    "font-size:12px",
-    "color:var(--text2)",
-    "display:flex",
-    "flex-wrap:wrap",
-    "gap:10px",
-    "align-items:center"
-  ].join(";");
-
-  var fields = [
-    { label: "Nama",    val: masked.name         || "—" },
-    { label: "IC",      val: masked.ic_masked     || "—" },
-    { label: "Tel",     val: masked.phone_masked  || "—" },
-    { label: "E-mel",   val: masked.email_masked  || "—" }
-  ];
-
-  var inner = fields.map(function(f) {
-    return "<span style='display:flex;flex-direction:column;gap:1px;'>" +
-      "<span style='font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;'>" + f.label + "</span>" +
-      "<span style='font-weight:600;color:var(--accent);font-family:var(--mono);font-size:11px;'>" + f.val + "</span>" +
-    "</span>";
-  }).join("<span style='color:var(--border2);'>|</span>");
-
-  strip.innerHTML =
-    "<span style='font-size:14px;flex-shrink:0;'>🔒</span>" +
-    inner +
-    "<span style='margin-left:auto;font-size:9px;color:var(--text3);font-style:italic;'>Data disamarkan untuk privasi</span>";
-
-  // Insert after patient-badge
-  var badge = document.getElementById("patient-badge");
-  if (badge && badge.parentNode) {
-    badge.parentNode.insertBefore(strip, badge.nextSibling);
-    console.log("[PREFILL] Masked badge rendered");
-  }
-}
-  var _saringanLoadMsgs = [
-  "💬 Saringan ini mengambil masa kurang dari 5 minit",
-  "🧠 Jawab dengan jujur untuk hasil yang tepat",
-  "💜 Kesihatan mental sama penting seperti kesihatan fizikal",
-  "✨ Tiada jawapan betul atau salah",
-  "🔒 Semua jawapan adalah sulit dan selamat"
-];
-var _saringanMsgIdx = 0;
-var _saringanMsgTimer = null;
-
-function _startSaringanLoadingMessages(){
-  _saringanMsgIdx = 0;
-  clearInterval(_saringanMsgTimer);
-  _saringanMsgTimer = setInterval(function(){
-    _saringanMsgIdx = (_saringanMsgIdx + 1) % _saringanLoadMsgs.length;
-    var el = document.getElementById("saringan-load-msg");
-    if(el){
-      el.style.opacity = "0";
-      setTimeout(function(){
-        el.textContent = _saringanLoadMsgs[_saringanMsgIdx];
-        el.style.opacity = "1";
-      }, 300);
-    }
-  }, 3000);
-}
-
-function onSaringanIframeLoad(){
-  // Iframe content loaded — fade out loading, show iframe
-  clearInterval(_saringanMsgTimer);
-  var loading = document.getElementById("saringan-loading");
-  var iframe  = document.getElementById("saringan-iframe");
-  if(loading){
-    loading.style.opacity = "0";
-    setTimeout(function(){ loading.style.display = "none"; }, 500);
-  }
-  if(iframe) iframe.style.opacity = "1";
-}
-function openSaringan() {
-  console.log("[SARINGAN] Opening. Token present:", !!_saringanToken, "| Paused:", window._saringanPaused);
-
-  // Build iframe URL — add token if available, name as fallback only
-  var baseUrl = "https://opdkktu.github.io/saringan-minda-sihat/";
-  var params  = [];
-
-  if (_saringanToken) {
-    // Token path — full prefill from MESRA (Phase 3)
-    params.push("token=" + encodeURIComponent(_saringanToken));
-    console.log("[SARINGAN] Using token prefill path");
-  } else {
-    // Fallback — name only (existing behaviour)
-    var name = (_lastStatus && _lastStatus.name) ? _lastStatus.name : "";
-    if (name) params.push("name=" + encodeURIComponent(name));
-    console.log("[SARINGAN] Using name-only fallback path");
   }
 
-  if (_queueNum) {
-    params.push("qnum=" + encodeURIComponent(_queueNum));
+  /*
+     Only continue while day mode
+     is active.
+  */
+  if(
+    currentDayMode &&
+    detectionRunning
+  ){
+    requestAnimationFrame(
+      detectLoop
+    );
   }
+}
+/* ============================================================
+   WELCOME TIME CONTROL
+============================================================ */
 
-  var url = baseUrl + (params.length ? "?" + params.join("&") : "");
+function isWelcomeAllowed(){
 
-  try { localStorage.setItem("prima_prefill_name", (_lastStatus && _lastStatus.name) || ""); } catch(e) {}
+  const now = new Date();
 
-  // Open in a real tab — Google's login/consent flow can't render in an iframe
-  window.open(url, "_blank");
+  const currentMinutes =
+    now.getHours() * 60 +
+    now.getMinutes();
 
-  showToast("calling",
-    "🧠 Saringan Dibuka",
-    "Sila lengkapkan dalam tab baharu. Kami akan kemaskini di sini secara automatik."
+  /* Welcome only between 07:40 and 16:30. */
+
+  return (
+    currentMinutes >= WELCOME_START_MINUTES &&
+    currentMinutes < WELCOME_END_MINUTES
   );
 
-  startSaringanWatcher();
 }
 
-function closeSaringan() {
-  window._saringanPaused = true;
-  document.getElementById('saringan-overlay').classList.remove('open');
-  if(window._saringanWatcher) clearInterval(window._saringanWatcher);
-  // Still check localStorage on manual close
-  try {
-    var raw = localStorage.getItem('saringan_result');
-    if(raw) {
-      var data = JSON.parse(raw);
-      if(data.type === 'SARINGAN_DONE') {
-        localStorage.removeItem('saringan_result');
-        receiveSaringanResult(data.scores);
-      }
-    }
-  } catch(e){}
-  if(_queueNum) startPolling();
+function isDetectionAllowed(){
+
+  return !qrAnnouncementActive && isWelcomeAllowed();
+
 }
+/* ============================================================
+   WELCOME SCREEN
+============================================================ */
 
-// Called by Saringan Minda iframe when test completes
-function receiveSaringanResult(scores) {
-  window._saringanDone = true;
-  window._saringanPaused = false;
-  
-  // Close overlay
-  document.getElementById('saringan-overlay').classList.remove('open');
-  document.getElementById('saringan-iframe').src = ''; // now safe to clear
-  
-  // Show result card
-  var card = document.getElementById('saringan-result-card');
-  card.classList.add('show');
-  
-  var rows = [
-    { label: 'Whooley', val: scores.whooley },
-    { label: 'PHQ-9',   val: scores.phq     },
-    { label: 'GAD-2',   val: scores.gad     }
-  ];
-  document.getElementById('saringan-score-rows').innerHTML =
-    rows.map(function(r){
-      return "<div class='saringan-score-row'>" +
-        "<span>" + r.label + "</span>" +
-        "<span class='saringan-score-val'>" + r.val + "</span>" +
-      "</div>";
-    }).join('');
-  
-  // Re-render train to show green tick
-  if(_lastStatus) renderTrain(_lastStatus);
-  
-  if(_queueNum) startPolling();
+async function playWelcome(){
+
+  /*
+     Never trigger during night mode.
+  */
+
+  if(!currentDayMode){
+
+    return;
+
+  }
+ /*
+     Stop welcome function after 4:30 PM.
+     welcome.png and welcome.mp3
+     will not be shown or played.
+  */
+
+  if(!isWelcomeAllowed()){
+    return;
+  }
+  showingWelcome = true;
+  triggered = true;
+  statusBox.textContent =
+    recordingActive
+    ?
+    "Visitor detected • 🔴 Recording"
+    :
+    "Visitor detected";
+  welcomeScreen.classList.add(
+    "show"
+  );
+  try{
+    audio.currentTime = 0;
+    await audio.play();
+  }catch(err){
+    console.log(
+      "Audio playback blocked:",
+      err
+    );
+  }
+  setTimeout(()=>{
+    welcomeScreen.classList.remove(
+      "show"
+    );
+    showingWelcome = false;
+  },5000);
 }
+/* ============================================================
+   START EVERYTHING
+============================================================ */
+async function start(){
 
-// ══════════════════════════════════════════════════════
-//  TOAST
-// ══════════════════════════════════════════════════════
-function showToast(type, title, sub){
-  var toast = document.getElementById("alert-toast");
-  var ico   = document.getElementById("toast-ico");
-  var ttl   = document.getElementById("toast-title");
-  var stxt  = document.getElementById("toast-sub2");
+  /* Keep the display on (also overnight). */
+  requestWakeLock();
+  /*
+     Determine the correct mode immediately.
+     This is important.
+     Example:
+     Chrome starts at 10:00
+     → DAY MODE
+     Chrome starts at 19:00
+     → NIGHT MODE
+  */
 
-  ico.textContent  = type === "calling" ? "🔔" : "⏳";
-  ttl.textContent  = title;
-  stxt.textContent = sub;
-
-  toast.className = "alert-toast " + type + " show";
-
-  clearTimeout(_toastTimer);
-  if(type !== "calling"){ // calling toast stays until dismissed
-    _toastTimer = setTimeout(hideToast, 8000);
+  if(shouldBeDayMode()){
+    currentDayMode = false;
+    await enterDayMode();
+  }else{
+    /*
+       We are starting outside
+       operating hours.
+       Don't initialise camera.
+       Don't initialise AI.
+    */
+    currentDayMode = true;
+    await enterNightMode();
   }
 }
-
-function hideToast(){
-  document.getElementById("alert-toast").classList.remove("show");
-}
-
-// ══════════════════════════════════════════════════════
-//  INIT — check notification permission on load
-// ══════════════════════════════════════════════════════
-if("Notification" in window && Notification.permission === "granted"){
-  _notifGranted = true;
-}
-  window.addEventListener('message', function(e) {
-    console.log('[PRIMA] message received from:', e.origin, e.data);
-  if (e.data && e.data.type === 'SARINGAN_DONE') {
-    receiveSaringanResult(e.data.scores);
-  }
-});
+/* ============================================================
+   START PRIMA
+============================================================ */
+start();
 </script>
 
 </body>
