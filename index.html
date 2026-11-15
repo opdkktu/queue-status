@@ -12,10 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="PRIMA Queue">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Semak status giliran anda di Klinik Kesihatan Ayer Hitam">
-<link rel="manifest" href="/manifest.json?v=1.05">
+<link rel="manifest" href="/manifest.json?v=1.06">
 <meta name="theme-color" content="#050D1A">
-<!-- PWA Icons (inline for GitHub hosting) -->
-<link rel="apple-touch-icon" href="data:prima.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <title>PRIMA — Semak Giliran</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,6 +30,30 @@
         enable: true,
       },
     });
+    try {
+      // Fires when the device gets (or loses) its push subscription — e.g. right after the user taps Allow.
+      OneSignal.User.PushSubscription.addEventListener("change", function(ev) {
+        var id = ev && ev.current && ev.current.id;
+        if (id) {
+          window._playerID = id;
+          try { localStorage.setItem("prima_player_id", id); } catch (e) {}
+          if (window._queueNum) {
+            if (window.setQueueTags) window.setQueueTags();
+            if (window.savePlayerIdToClinic) window.savePlayerIdToClinic(window._queueNum, id);
+          }
+        }
+        if (window.refreshNotifStatus) window.refreshNotifStatus();
+      });
+      OneSignal.Notifications.addEventListener("permissionChange", function() {
+        if (window.updateNotifBtn) window.updateNotifBtn();
+        if (window.refreshNotifStatus) window.refreshNotifStatus();
+      });
+      // Push received while the app is open
+      OneSignal.Notifications.addEventListener("foregroundWillDisplay", function() {
+        try { localStorage.setItem("prima_last_push", String(Date.now())); } catch (e) {}
+        if (window.refreshNotifStatus) window.refreshNotifStatus();
+      });
+    } catch (e) { console.warn("[PRIMA] OneSignal listeners failed:", e); }
   });
 </script>
 <style>
@@ -912,6 +935,120 @@ body {
 .hier-select:focus { border-color:var(--accent); }
 .hier-select option { background:#0F2040; color:var(--text1); }
 #saringan-overlay { position: relative; }
+
+/* ══════════════════════════════════════════
+   TUTORIAL + NOTIFICATION STATUS
+══════════════════════════════════════════ */
+.tut-link{
+  background:none;border:0;padding:0;margin-top:6px;cursor:pointer;
+  color:var(--accent2);font:600 12px var(--sans);text-decoration:underline;
+}
+.tut-fab{
+  position:fixed;left:14px;bottom:calc(16px + var(--safe-bot));z-index:900;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px 10px 12px;border:0;border-radius:999px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#04121f;font:700 13px var(--sans);cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,200,150,.35);
+  transform-origin:50% 60%;
+}
+.tut-fab .fab-ico{font-size:22px;line-height:1;display:inline-block}
+.tut-fab .fab-dot{
+  position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;
+  border:2px solid var(--bg);background:var(--amber);
+}
+.tut-fab.st-ok  .fab-dot{background:var(--accent)}
+.tut-fab.st-bad .fab-dot{background:var(--red)}
+.tut-fab.shake{animation:fabShake 3s ease-in-out infinite}
+@keyframes fabShake{
+  0%,58%,100%{transform:rotate(0) scale(1)}
+  62%{transform:rotate(-12deg) scale(1.07)}
+  66%{transform:rotate(12deg) scale(1.07)}
+  70%{transform:rotate(-10deg) scale(1.05)}
+  74%{transform:rotate(10deg) scale(1.05)}
+  78%{transform:rotate(-5deg)}
+  82%{transform:rotate(5deg)}
+  86%{transform:rotate(0)}
+}
+@media (prefers-reduced-motion:reduce){ .tut-fab.shake{animation:none} }
+
+.tut{
+  width:min(560px,calc(100vw - 16px));max-width:none;
+  max-height:min(90dvh,860px);margin:auto;padding:0;
+  border:1px solid var(--border2);border-radius:20px;
+  background:var(--bg1);color:var(--text1);font-family:var(--sans);
+  overflow:hidden;
+}
+.tut[open]{display:flex;flex-direction:column}
+.tut:modal{overscroll-behavior:contain}
+.tut::backdrop{background:rgba(2,8,16,.75);overflow:hidden;overscroll-behavior:contain}
+@media (max-width:600px){
+  .tut{width:100%;margin:auto 0 0;border-radius:20px 20px 0 0;max-height:92dvh}
+}
+.tut-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+}
+.tut-head h2{font-size:15px;font-weight:700}
+.tut-close{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);
+  background:var(--glass2);color:var(--text1);font-size:15px;cursor:pointer;
+}
+.tut-body{
+  overflow:auto;padding:16px;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.tut-card{
+  background:var(--glass);border:1px solid var(--border);border-radius:14px;
+  padding:14px;margin-bottom:14px;
+}
+.tut-overall{font-size:14px;font-weight:700;margin-bottom:6px}
+.tut-overall.ok{color:var(--accent)} .tut-overall.warn{color:var(--amber)} .tut-overall.bad{color:var(--red)}
+.chk-list{list-style:none}
+.chk-list li{
+  display:flex;gap:10px;align-items:flex-start;padding:8px 0;
+  border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.45;
+}
+.chk-list li:last-child{border-bottom:0}
+.chk-ico{flex-shrink:0;width:20px;text-align:center}
+.chk-lbl{font-weight:600}
+.chk-det{color:var(--text2);font-size:11.5px}
+.tut-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tut-btn{
+  flex:1 1 140px;padding:10px 12px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--glass2);color:var(--text1);
+  font:600 12.5px var(--sans);
+}
+.tut-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121f;border:0}
+.tut-note{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px}
+.tut-test-msg{font-size:12px;color:var(--accent);margin-top:8px;min-height:1em}
+.tut-pid{
+  display:flex;gap:8px;align-items:center;margin-top:10px;font-size:10.5px;color:var(--text3);
+}
+.tut-pid code{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--mono);color:var(--text2);
+}
+.tut-tabs{display:flex;gap:6px;margin-bottom:12px}
+.tut-tab{
+  flex:1;padding:10px;border-radius:12px;border:1px solid var(--border2);
+  background:var(--glass);color:var(--text2);font:600 13px var(--sans);cursor:pointer;
+}
+.tut-tab[aria-selected="true"]{background:rgba(0,200,150,.14);border-color:var(--accent);color:var(--accent)}
+.tut-steps{padding-left:20px;font-size:13px;line-height:1.6}
+.tut-steps li{margin-bottom:8px}
+.tut-steps b{color:var(--accent2)}
+.tut-media{margin:10px 0;border-radius:12px;overflow:hidden;background:#000}
+.tut-media video,.tut-media img{display:block;width:100%;height:auto}
+.tut-media.tut-yt{position:relative;aspect-ratio:16/9}
+.tut-media.tut-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.tut-cap{font-size:11px;color:var(--text3);padding:6px 10px;background:var(--bg2)}
+.tut details{
+  background:var(--glass);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;margin-top:10px;font-size:12.5px;line-height:1.55;
+}
+.tut summary{cursor:pointer;font-weight:600}
+.tut details ul{padding-left:18px;margin-top:8px;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -1040,7 +1177,8 @@ body {
   <div>
     <strong>Tambah ke Skrin Utama</strong><br>
     Selepas benarkan notifikasi, ikon PRIMA akan muncul.<br>
-    <span id="install-ios-hint">iOS: click <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span>
+    <span id="install-ios-hint">iOS: click <strong>⎙</strong> → <strong>"Add to Home Screen"</strong></span><br>
+    <button type="button" class="tut-link" onclick="openTutorial()">Lihat panduan lengkap →</button>
   </div>
   <button class="install-hint-close" onclick="this.parentElement.style.display='none'">✕</button>
 </div>
@@ -1110,6 +1248,7 @@ body {
       <div class="notif-body">
         <div class="notif-title">Notifikasi Giliran</div>
         <div class="notif-sub">Benarkan notifikasi supaya anda diberi amaran apabila giliran menghampiri</div>
+        <button type="button" class="tut-link" onclick="openTutorial()">Panduan &amp; semak status notifikasi</button>
       </div>
       <button class="btn-notif" id="btn-notif" onclick="requestNotifPermission()">Benarkan</button>
     </div>
@@ -1117,7 +1256,7 @@ body {
     <!-- Refresh indicator -->
     <div class="refresh-row">
       <div class="refresh-dot"></div>
-      <span>Dikemaskini setiap 30s · <span id="last-refresh">--:--:--</span></span>
+      <span>Dikemaskini setiap 10s · <span id="last-refresh">--:--:--</span></span>
     </div>
     
     <div style="margin-bottom:16px;">
@@ -1221,6 +1360,88 @@ body {
 </div>
 
 <!-- NOTIFICATION SOUND -->
+<!-- ══ TUTORIAL: floating shaking button + dialog ══ -->
+<button type="button" class="tut-fab shake" id="tut-fab" onclick="openTutorial()"
+        aria-haspopup="dialog" aria-label="Buka panduan pemasangan dan semak status notifikasi">
+  <span class="fab-ico" aria-hidden="true">📲</span>
+  <span class="fab-txt">Panduan Notifikasi</span>
+  <span class="fab-dot" aria-hidden="true"></span>
+</button>
+
+<dialog id="tut-dialog" class="tut" aria-labelledby="tut-title" closedby="any">
+  <div class="tut-head">
+    <h2 id="tut-title">📲 Panduan &amp; Status Notifikasi</h2>
+    <form method="dialog"><button class="tut-close" aria-label="Tutup">✕</button></form>
+  </div>
+
+  <div class="tut-body">
+
+    <!-- LIVE STATUS -->
+    <section class="tut-card" aria-live="polite">
+      <div class="tut-overall warn" id="tut-overall">Memeriksa...</div>
+      <ul class="chk-list" id="tut-checks"></ul>
+      <div class="tut-actions">
+        <button type="button" class="tut-btn primary" id="tut-btn-enable" onclick="requestNotifPermission()">🔔 Benarkan Notifikasi</button>
+        <button type="button" class="tut-btn" id="tut-btn-install" onclick="tutInstall()" hidden>⬇️ Pasang Apl</button>
+        <button type="button" class="tut-btn" onclick="tutTest()">🧪 Uji Notifikasi (5s)</button>
+        <button type="button" class="tut-btn" onclick="refreshNotifStatus(true)">🔄 Semak Semula</button>
+      </div>
+      <div class="tut-test-msg" id="tut-test-msg" role="status"></div>
+      <div class="tut-pid">
+        <span>ID peranti (untuk staf):</span><code id="tut-pid">—</code>
+        <button type="button" class="tut-link" style="margin:0" onclick="tutCopyPid()">Salin</button>
+      </div>
+      <p class="tut-note">
+        Ujian 5 saat menyemak sama ada telefon ini boleh memaparkan notifikasi — tekan, kemudian tukar ke apl lain atau kunci skrin.
+        Untuk ujian penuh (dari pelayan klinik), staf boleh hantar mesej ujian kepada ID peranti di atas melalui OneSignal.
+      </p>
+    </section>
+
+    <!-- PLATFORM TABS -->
+    <div class="tut-tabs" role="tablist" aria-label="Pilih jenis telefon">
+      <button type="button" class="tut-tab" role="tab" id="tab-android" aria-selected="true"  aria-controls="panel-android" onclick="setTutTab('android')">🤖 Android</button>
+      <button type="button" class="tut-tab" role="tab" id="tab-ios"     aria-selected="false" aria-controls="panel-ios"     onclick="setTutTab('ios')">🍎 iPhone</button>
+    </div>
+
+    <!-- ANDROID -->
+    <div role="tabpanel" id="panel-android" aria-labelledby="tab-android">
+      <div id="tut-media-android"></div>
+      <ol class="tut-steps">
+        <li>Buka pautan PRIMA dalam <b>Chrome</b> (bukan dalam WhatsApp / Facebook — tekan ⋮ → <i>Buka dalam Chrome</i>).</li>
+        <li>Tekan <b>⋮</b> (menu Chrome) → <b>Pasang apl</b> atau <b>Tambah ke skrin utama</b>. Atau tekan butang <b>Pasang Apl</b> di atas.</li>
+        <li>Buka PRIMA dari <b>ikon di skrin utama</b>.</li>
+        <li>Masukkan nombor giliran → <b>Semak Status</b> → tekan <b>Benarkan</b> apabila diminta kebenaran notifikasi.</li>
+        <li><b>Penting:</b> Tetapan → Apl → Chrome (atau PRIMA) → Bateri → pilih <b>Tanpa sekatan / Unrestricted</b>. Matikan mod <i>Jimat Bateri</i>.</li>
+      </ol>
+    </div>
+
+    <!-- IPHONE -->
+    <div role="tabpanel" id="panel-ios" aria-labelledby="tab-ios" hidden>
+      <div id="tut-media-ios"></div>
+      <ol class="tut-steps">
+        <li>Perlu <b>iOS 16.4 atau lebih baharu</b>. Buka pautan PRIMA dalam <b>Safari</b> (bukan Chrome / aplikasi lain).</li>
+        <li>Tekan ikon <b>Kongsi ⎙</b> → tatal → <b>Tambah ke Skrin Utama</b> → <b>Tambah</b>.</li>
+        <li>Tutup Safari. Buka PRIMA dari <b>ikon di skrin utama</b> (<u>bukan</u> dari Safari) — notifikasi hanya berfungsi dari sini.</li>
+        <li>Masukkan nombor giliran → <b>Semak Status</b> → tekan <b>Allow / Benarkan</b>.</li>
+        <li><b>Penting:</b> Tetapan iPhone → Notifikasi → PRIMA → pastikan dibenarkan. Matikan mod <i>Fokus / Jangan Ganggu</i> semasa menunggu.</li>
+      </ol>
+    </div>
+
+    <details>
+      <summary>❓ Notifikasi tidak muncul?</summary>
+      <ul>
+        <li>Pastikan semua tanda di bahagian status di atas berwarna ✅.</li>
+        <li>Pastikan nombor giliran sudah dimasukkan dan status giliran dipaparkan.</li>
+        <li>Jangan <i>force-close</i> / buang apl dari senarai apl yang dibuka (terutama Android).</li>
+        <li>Pastikan internet atau data mudah alih aktif; jangan hidupkan mod penjimat data yang menyekat apl latar.</li>
+        <li>Jika kebenaran pernah ditolak: buka Tetapan telefon → Notifikasi → PRIMA / Chrome → Benarkan, kemudian tekan <b>Semak Semula</b>.</li>
+        <li>Masih gagal? Padam ikon PRIMA, pasang semula mengikut langkah di atas, dan beritahu kaunter pendaftaran.</li>
+      </ul>
+    </details>
+
+  </div>
+</dialog>
+
 <audio id="aud-notify" preload="auto">
   <source src="https://opdkktu.github.io/trial1/bell.mp3" type="audio/mpeg">
 </audio>
@@ -1238,7 +1459,7 @@ body {
         district: "Kubang Pasu",
         clinics: [
           { id:"ayer-hitam",  name:"Klinik Kesihatan Ayer Hitam",  url:"/api/ayer-hitam", color:"#00C896" },
-          { id:"Kodiang",  name:"Klinik Kesihatan Kodiang(akan datang)",  url:"/api/kodiang", color:"#00A8FF" },
+          { id:"kodiang",  name:"Klinik Kesihatan Kodiang(akan datang)",  url:"/api/kodiang", color:"#00A8FF" },
           { id:"jitra",       name:"Klinik Kesihatan Jitra(akan datang)",        url:"/api/jitra", color:"#8B5CF6" }
         ]
       },
@@ -1257,7 +1478,7 @@ body {
       {
         district: "Kangar",
         clinics: [
-          { id:"kangar",      name:"Klinik Kesihatan Kangar",       url:".api/kangar", color:"#EF4444" }
+          { id:"kangar",      name:"Klinik Kesihatan Kangar",       url:"/api/kangar", color:"#EF4444" }
         ]
       }
     ]
@@ -1293,6 +1514,51 @@ window.addEventListener("appinstalled", function(){
   showToast("calling","✅ WebApp Dipasang!","PRIMA Queue telah ditambah ke skrin utama");
 });
 // ══════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════
+// Today's date in Malaysia (UTC+8) — toISOString() alone is UTC and flips at 08:00 local time
+function myToday(){
+  return new Date(Date.now() + 8*60*60*1000).toISOString().slice(0, 10);
+}
+
+// Tell OneSignal which queue number this device is waiting for
+function setQueueTags(){
+  if(!window.OneSignalDeferred || !_queueNum) return;
+  OneSignalDeferred.push(async function(OneSignal){
+    try{
+      await OneSignal.User.addTag("queue_num", String(parseInt(_queueNum)));
+      await OneSignal.User.addTag("queue_date", myToday());
+      console.log("[PRIMA] Tags set: queue_num =", _queueNum, "| queue_date =", myToday());
+      // Also (re)register the push ID with the clinic if we already have one
+      var id = OneSignal.User.PushSubscription.id;
+      if(id){
+        _playerID = id;
+        try{ localStorage.setItem("prima_player_id", id); }catch(e){}
+        if(_selectedClinic && localStorage.getItem("prima_pid_saved") !== (id + ":" + _queueNum + ":" + _selectedClinic.id)){
+          savePlayerIdToClinic(_queueNum, id);
+        }
+      }
+    }catch(e){ console.error("[PRIMA] Tag failed:", e); }
+  });
+}
+
+// Register this device's push ID against the queue number in the clinic's GAS
+function savePlayerIdToClinic(num, pid){
+  if(!_selectedClinic || !num || !pid) return Promise.resolve(false);
+  var clinicId = _selectedClinic.id;
+  return fetch(_selectedClinic.url + "?action=savePlayerID&num=" + encodeURIComponent(num) +
+               "&pid=" + encodeURIComponent(pid))
+    .then(function(r){
+      if(r.ok){
+        try{ localStorage.setItem("prima_pid_saved", pid + ":" + num + ":" + clinicId); }catch(e){}
+      }
+      if(window.refreshNotifStatus) window.refreshNotifStatus();
+      return r.ok;
+    })
+    .catch(function(){ return false; });
+}
+
+// ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
 var _queueNum      = null;
@@ -1321,7 +1587,7 @@ tickClock(); setInterval(tickClock, 1000);
 window.addEventListener("load", function(){
   initHierarchy();
   var savedDate = localStorage.getItem("prima_queue_date");
-var today = new Date().toISOString().slice(0, 10);
+var today = myToday();
 if (savedDate && savedDate !== today) {
   localStorage.removeItem("prima_queue_date");
   localStorage.removeItem("prima_queue_num");
@@ -1366,14 +1632,6 @@ setTimeout(function(){
   }
 }, 3000);
 
-  // Notification prompt — outside the 800ms timeout
-  setTimeout(function(){
-    if(window.OneDeferred){
-      OneDeferred.push(async function(One){
-        await One.Notifications.requestPermission();
-      });
-    }
-  }, 2000);
   // ADD before the saved queue restore block:
 var savedClinicId = localStorage.getItem("prima_clinic_id");
 if(savedClinicId){
@@ -1402,6 +1660,9 @@ if(saved && (Date.now() - savedTime < EIGHT_HOURS)){
 
   setTimeout(function(){
     _queueNum = parseInt(saved);
+    setQueueTags();
+    var _restPid = _playerID || localStorage.getItem("prima_player_id");
+    if(_restPid) savePlayerIdToClinic(_queueNum, _restPid);
     fetchStatus(_queueNum, function(data){
       if(data && data.status === "success"){
         showStatusScreen(data);
@@ -1519,7 +1780,7 @@ function confirmClinicSelection(){
 
   // Update header subtitle
   document.querySelector(".brand-sub").textContent =
-    clinic.name + " · " + clinic.zone;
+    clinic.name;
 
   // Save selection
   try { localStorage.setItem("prima_clinic_id", clinic.id); } catch(e){}
@@ -1580,29 +1841,12 @@ function submitQueueNum(){
 
   _queueNum = parseInt(val);
   _calledNotified  = false;
-// ---> ADD THIS NEW ONESIGNAL LINE HERE <---
-  if (window.OneSignalDeferred) {
-  OneSignalDeferred.push(async function(OneSignal) {
-    try {
-      await new Promise(function(resolve){ setTimeout(resolve, 1000); });
-      var numStr = parseInt(_queueNum).toString();
-      var today = new Date().toISOString().slice(0, 10);
-      await OneSignal.User.addTag("queue_num", numStr);
-      await OneSignal.User.addTag("queue_date", today);  
-      console.log("[PRIMA] Tags set OK: queue_num =", numStr, "| queue_date =", today);
-    } catch(e) {
-      console.error("[PRIMA] Tag failed:", e);
-    }
-  });
-}
+  setQueueTags();
 
      _standbyNotified = false;
   localStorage.setItem("prima_queue_num", val);
 var pid = _playerID || localStorage.getItem("prima_player_id");
-if(pid && _selectedClinic){
-  fetch(_selectedClinic.url + "?action=savePlayerID&num=" + encodeURIComponent(val) + "&pid=" + encodeURIComponent(pid))
-    .catch(function(){});
-}
+if(pid) savePlayerIdToClinic(val, pid);
   // Show loading state on button
   var btn = document.getElementById("btn-check");
   btn.disabled = true;
@@ -1618,44 +1862,10 @@ if(pid && _selectedClinic){
       errEl.style.animation = "errShake .3s ease";
       return;
     }
-// Add this inside the fetchStatus callback, after showStatusScreen(data):
-if ("Notification" in window && Notification.permission === "default") {
-  // Small delay so screen has switched first
-  setTimeout(function() {
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.Notifications.requestPermission();
-    });
-  }, 1500);
-}
+    // Remember when this queue number was saved (restored on reopen for up to 8 hours)
+    try{ localStorage.setItem("prima_queue_time", String(Date.now())); }catch(e){}
     showStatusScreen(data);
     startPolling();
-  });
-}
-function _askNotifPermission(){
-  if(!("Notification" in window)) return;
-  if(Notification.permission !== "default") return; // already granted or denied
-
-  Notification.requestPermission().then(function(perm){
-    _notifGranted = perm === "granted";
-    updateNotifBtn();
-
-    if(_notifGranted){
-      // Register SW immediately
-      if("serviceWorker" in navigator){
-        navigator.serviceWorker.register("sw.js")
-          .then(function(reg){
-            window._swReg = reg;
-            console.log("[SW] Registered");
-          });
-      }
-      // Trigger Add to Home Screen on Android
-      if(window._deferredPrompt){
-        window._deferredPrompt.prompt();
-        window._deferredPrompt.userChoice.then(function(r){
-          window._deferredPrompt = null;
-        });
-      }
-    }
   });
 }
 // ══════════════════════════════════════════════════════
@@ -1698,15 +1908,18 @@ function showStatusScreen(data){
    var nameEl = document.getElementById("badge-name");
    var notYet = data.notCalledYet;
    if(nameEl){
-     nameEl.textContent = data.name ? data.name : "";
-     nameEl.style.display = data.name ? "block" : "none";
-   }else if(notYet){
-    nameEl.textContent = "Menunggu panggilan pendaftaran";
-    nameEl.style.color = "var(--amber)";
-    nameEl.style.display = "block";
-  } else {
-    nameEl.style.display = "none";
-  }
+     if(data.name){
+       nameEl.textContent = data.name;
+       nameEl.style.color = "var(--accent)";
+       nameEl.style.display = "block";
+     } else if(notYet){
+       nameEl.textContent = "Menunggu panggilan pendaftaran";
+       nameEl.style.color = "var(--amber)";
+       nameEl.style.display = "block";
+     } else {
+       nameEl.style.display = "none";
+     }
+   }
   // Checkpoint train
   renderTrain(data);
 
@@ -1836,8 +2049,7 @@ if(stage === "NURSE"|| stage === "DOCTOR"){
       "<div class='station-dot'>" + lbl.icon + "</div>" +
       "<div class='station-body'>" +
         "<div class='station-name'>" + lbl.name + "</div>" +
-        "<div class='station-meta'>" + timeHtml + badge + "</div>" +medBadge +
-       medBadge +saringanBtn +
+        "<div class='station-meta'>" + timeHtml + badge + "</div>" + medBadge + saringanBtn +
       "</div>" +
     "</div>";
   }).join("");
@@ -2025,56 +2237,58 @@ function resetToInput(){
 //  NOTIFICATIONS
 // ══════════════════════════════════════════════════════
 function requestNotifPermission(){
+  // iPhone Safari tab: the Notification API only exists after "Add to Home Screen"
   if(!("Notification" in window)){
-    showToast("standby","Tidak Disokong","Pelayar ini tidak menyokong notifikasi");
+    showToast("standby","Pasang ke Skrin Utama Dahulu",
+      "iPhone: notifikasi hanya berfungsi selepas Tambah ke Skrin Utama");
+    openTutorial("ios");
     return;
   }
-
-  Notification.requestPermission().then(function(perm){
-    _notifGranted = perm === "granted";
-    updateNotifBtn();
-
-    if(_notifGranted){
-       if(window.OneSignalDeferred){
-    OneSignalDeferred.push(async function(OneSignal){
-      try{
-        // Add queue tag
-        await OneSignal.User.addTag("queue_num", parseInt(_queueNum).toString());
-        
-        // Re-capture Player ID now that permission is granted
-        var id = await OneSignal.User.PushSubscription.id;
+  if(Notification.permission === "denied"){
+    showToast("standby","Notifikasi Disekat",
+      "Buka Tetapan telefon → Notifikasi → PRIMA/Chrome → Benarkan");
+    openTutorial();
+    return;
+  }
+  if(!window.OneSignalDeferred){
+    showToast("standby","Ralat","Perkhidmatan notifikasi tidak dapat dimuatkan");
+    return;
+  }
+  OneSignalDeferred.push(async function(OneSignal){
+    try{
+      await OneSignal.Notifications.requestPermission();
+      if(OneSignal.Notifications.permission){
+        _notifGranted = true;
+        try{ await OneSignal.User.PushSubscription.optIn(); }catch(e){}
+        var id = OneSignal.User.PushSubscription.id;
         if(id){
           _playerID = id;
-          localStorage.setItem("prima_player_id", id);
-          console.log("[PRIMA] Player ID refreshed after permission:", id);
-          // Resave to GAS with current queue number
-          if(_queueNum){
-            fetch(_selectedClinic.url + "?action=savePlayerID&num=" +
-              encodeURIComponent(_queueNum) + "&pid=" + encodeURIComponent(id))
-              .catch(function(){});
-          }
+          try{ localStorage.setItem("prima_player_id", id); }catch(e){}
         }
-      } catch(e){
-        console.warn("[PRIMA] Post-permission capture failed:", e);
+        if(_queueNum){
+          setQueueTags();
+          if(id) savePlayerIdToClinic(_queueNum, id);
+        }
+        showToast("calling","✅ Notifikasi Dibenarkan",
+          "Anda akan diberitahu walaupun apl berada di latar");
+        if(window._deferredPrompt){
+          window._deferredPrompt.prompt();
+          window._deferredPrompt.userChoice.then(function(){
+            window._deferredPrompt = null;
+            document.getElementById("install-hint").style.display = "none";
+          });
+        }
+      } else {
+        _notifGranted = false;
+        showToast("standby","Notifikasi Ditolak",
+          "Benarkan notifikasi dalam tetapan telefon untuk menerima amaran");
       }
-    });
-  }
-  showToast("calling","✅ Notifikasi Dibenarkan",
-    "Anda akan diberitahu walaupun apl ditutup");
-
-      // Trigger Add to Home Screen prompt if available
-      if(window._deferredPrompt){
-        window._deferredPrompt.prompt();
-        window._deferredPrompt.userChoice.then(function(result){
-          console.log("[PWA] Install choice:", result.outcome);
-          window._deferredPrompt = null;
-          document.getElementById("install-hint").style.display = "none";
-        });
-      }
-    } else {
-      showToast("standby","Notifikasi Ditolak",
-        "Benarkan notifikasi dalam tetapan pelayar untuk menerima amaran");
+    }catch(e){
+      console.warn("[PRIMA] Permission flow failed:", e);
+      showToast("standby","Ralat","Gagal meminta kebenaran notifikasi. Cuba lagi.");
     }
+    updateNotifBtn();
+    refreshNotifStatus();
   });
 }
 function clearQueueNotificationTag(){
@@ -2093,8 +2307,14 @@ function clearQueueNotificationTag(){
 function updateNotifBtn(){
   var btn = document.getElementById("btn-notif");
   var card = document.getElementById("notif-card");
+  if(!btn || !card) return;
+  card.style.display = "";
   if(!("Notification" in window)){
-    card.style.display = "none"; return;
+    // iPhone Safari tab — guide the user to install first instead of hiding the card
+    btn.textContent = "Cara Pasang";
+    btn.classList.remove("granted");
+    btn.disabled = false;
+    return;
   }
   if(Notification.permission === "granted"){
     _notifGranted = true;
@@ -2102,6 +2322,7 @@ function updateNotifBtn(){
     btn.classList.add("granted");
     btn.disabled = true;
   } else {
+    _notifGranted = false;
     btn.textContent = "Benarkan";
     btn.classList.remove("granted");
     btn.disabled = false;
@@ -2109,21 +2330,11 @@ function updateNotifBtn(){
 }
 
 function sendNotification(title, body){
-  // Use SW to show notification — works in background
-  if(window._swReg && _notifGranted){
-    window._swReg.showNotification(title, {
-      body    : body,
-      icon    : "prima.png",
-      badge   : "prima.png",
-      vibrate : [200, 100, 200],
-      tag     : "prima-queue",
-      renotify: true,
-      actions : [{ action:"open", title:"Buka Apl" }]
-    });
-  } else if(_notifGranted && "Notification" in window){
-    // Fallback for browsers without SW support
-    new Notification(title, { body:body, icon:"prima.png" });
-  }
+  // The real background delivery is the OneSignal push sent by the server.
+  // This is a local backup: only when the page is hidden (visible page already shows toast + sound).
+  if(!_notifGranted) return;
+  if(document.visibilityState === "visible") return;
+  showLocalNotification(title, body, "prima-queue");
 }
 
 function playNotifSound(){
@@ -2362,12 +2573,280 @@ function hideToast(){
 if("Notification" in window && Notification.permission === "granted"){
   _notifGranted = true;
 }
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState !== "visible") return;
+  if(_queueNum && _selectedClinic){
+    fetchStatus(_queueNum, function(data){
+      if(data && data.status === "success") showStatusScreen(data);
+    });
+  }
+  updateNotifBtn();
+  refreshNotifStatus();
+});
   window.addEventListener('message', function(e) {
     console.log('[PRIMA] message received from:', e.origin, e.data);
   if (e.data && e.data.type === 'SARINGAN_DONE') {
     receiveSaringanResult(e.data.scores);
   }
 });
+
+// ══════════════════════════════════════════════════════
+//  TUTORIAL + NOTIFICATION STATUS CHECK
+// ══════════════════════════════════════════════════════
+// ★ Add your tutorial media here. Files go in the repo's  tutorial/  folder.
+//   type "mp4"     → { type:"mp4",     src:"tutorial/android.mp4", poster:"tutorial/android-poster.jpg" }
+//   type "youtube" → { type:"youtube", id:"VIDEO_ID" }            (the part after v= in the link)
+//   type "image"   → { type:"image",   src:"tutorial/android-1.jpg", caption:"Langkah 1" }
+// Entries whose file is missing (or youtube id empty) are hidden automatically.
+var TUTORIAL = {
+  android: [
+    { type:"youtube", id:"" },
+    { type:"mp4",   src:"tutorial/android.mp4" },
+    { type:"image", src:"tutorial/android-1.jpg", caption:"Langkah 1" },
+    { type:"image", src:"tutorial/android-2.jpg", caption:"Langkah 2" },
+    { type:"image", src:"tutorial/android-3.jpg", caption:"Langkah 3" }
+  ],
+  ios: [
+    { type:"youtube", id:"" },
+    { type:"mp4",   src:"tutorial/ios.mp4" },
+    { type:"image", src:"tutorial/ios-1.jpg", caption:"Langkah 1" },
+    { type:"image", src:"tutorial/ios-2.jpg", caption:"Langkah 2" },
+    { type:"image", src:"tutorial/ios-3.jpg", caption:"Langkah 3" }
+  ]
+};
+
+function tutEsc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function tutMediaHtml(m){
+  var hide = "onerror=\"this.closest('.tut-media').hidden=true\"";
+  if(m.type === "youtube"){
+    if(!m.id) return "";
+    return "<div class='tut-media tut-yt'><iframe loading='lazy' title='Video panduan' " +
+      "src='https://www.youtube-nocookie.com/embed/" + encodeURIComponent(m.id) + "' " +
+      "allow='accelerometer; encrypted-media; picture-in-picture' allowfullscreen></iframe></div>";
+  }
+  if(m.type === "mp4"){
+    if(!m.src) return "";
+    return "<div class='tut-media'><video controls playsinline preload='none'" +
+      (m.poster ? " poster='" + tutEsc(m.poster) + "'" : "") + ">" +
+      "<source src='" + tutEsc(m.src) + "' type='video/mp4' " + hide + "></video></div>";
+  }
+  if(m.type === "image"){
+    if(!m.src) return "";
+    return "<div class='tut-media'><img loading='lazy' alt='" + tutEsc(m.caption || "Panduan") + "' src='" + tutEsc(m.src) + "' " + hide + ">" +
+      (m.caption ? "<div class='tut-cap'>" + tutEsc(m.caption) + "</div>" : "") + "</div>";
+  }
+  return "";
+}
+
+function renderTutorialMedia(){
+  ["android","ios"].forEach(function(p){
+    var el = document.getElementById("tut-media-" + p);
+    if(el) el.innerHTML = (TUTORIAL[p] || []).map(tutMediaHtml).join("");
+  });
+}
+
+function setTutTab(p){
+  ["android","ios"].forEach(function(x){
+    document.getElementById("tab-" + x).setAttribute("aria-selected", x === p ? "true" : "false");
+    document.getElementById("panel-" + x).hidden = (x !== p);
+  });
+  // stop any playing video on the other tab
+  document.querySelectorAll("#tut-dialog video").forEach(function(v){ try{ v.pause(); }catch(e){} });
+}
+
+function openTutorial(platform){
+  var d = document.getElementById("tut-dialog");
+  if(!d) return;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  setTutTab(platform || (isIOS ? "ios" : "android"));
+  if(!d.open) d.showModal();
+  refreshNotifStatus();
+}
+
+function tutInstall(){
+  if(window._deferredPrompt){
+    window._deferredPrompt.prompt();
+    window._deferredPrompt.userChoice.then(function(){
+      window._deferredPrompt = null;
+      refreshNotifStatus();
+    });
+  }
+}
+
+function tutCopyPid(){
+  var id = localStorage.getItem("prima_player_id") || _playerID || "";
+  var msg = document.getElementById("tut-test-msg");
+  if(!id){ msg.textContent = "Belum ada ID peranti — benarkan notifikasi dahulu."; return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(id).then(function(){ msg.textContent = "✅ ID disalin."; },
+      function(){ msg.textContent = id; });
+  } else { msg.textContent = id; }
+}
+
+// ── Local notification (works from the page, uses the OneSignal service worker) ──
+function showLocalNotification(title, body, tag){
+  var opts = {
+    body: body, icon: "/icon-192.png", badge: "/icon-192.png",
+    tag: tag || "prima-queue", renotify: true, vibrate: [200,100,200]
+  };
+  function fallback(){
+    try{ new Notification(title, { body: body, icon: opts.icon }); return true; }
+    catch(e){ return false; }
+  }
+  if("serviceWorker" in navigator){
+    return navigator.serviceWorker.getRegistration().then(function(reg){
+      if(!reg) throw new Error("no-sw");
+      return reg.showNotification(title, opts).then(function(){ return true; });
+    }).catch(function(){ return fallback(); });
+  }
+  return Promise.resolve(fallback());
+}
+
+function tutTest(){
+  var msg = document.getElementById("tut-test-msg");
+  if(!("Notification" in window) || Notification.permission !== "granted"){
+    msg.style.color = "var(--red)";
+    msg.textContent = "❌ Kebenaran notifikasi belum diberikan. Tekan 'Benarkan Notifikasi' dahulu.";
+    return;
+  }
+  msg.style.color = "var(--accent)";
+  msg.textContent = "⏳ Ujian bermula — tukar ke apl lain sekarang. Notifikasi akan muncul dalam 5 saat.";
+  setTimeout(function(){
+    showLocalNotification("🔔 Ujian PRIMA", "Jika anda nampak ini, telefon anda boleh memaparkan notifikasi.", "prima-test")
+      .then(function(ok){
+        msg.style.color = ok ? "var(--accent)" : "var(--red)";
+        msg.textContent = ok
+          ? "✅ Notifikasi ujian dihantar. Jika anda tidak nampak, semak tetapan notifikasi telefon."
+          : "❌ Telefon gagal memaparkan notifikasi. Semak kebenaran dalam Tetapan.";
+      });
+  }, 5000);
+}
+
+// ── Collect + render status ──
+function collectNotifState(){
+  return new Promise(function(resolve){
+    var st = {
+      standalone: window.matchMedia("(display-mode: standalone)").matches || !!window.navigator.standalone,
+      ios: /iphone|ipad|ipod/i.test(navigator.userAgent),
+      api: ("Notification" in window),
+      perm: ("Notification" in window) ? Notification.permission : "unsupported",
+      sdk: false, optedIn: false, id: null
+    };
+    if(!window.OneSignalDeferred){ resolve(st); return; }
+    var done = false;
+    var t = setTimeout(function(){ if(!done){ done = true; resolve(st); } }, 2500);
+    OneSignalDeferred.push(async function(OneSignal){
+      try{
+        st.sdk = true;
+        st.optedIn = !!OneSignal.User.PushSubscription.optedIn;
+        st.id = OneSignal.User.PushSubscription.id || null;
+      }catch(e){}
+      if(!done){ done = true; clearTimeout(t); resolve(st); }
+    });
+  });
+}
+
+function refreshNotifStatus(manual){
+  collectNotifState().then(function(st){ renderNotifStatus(st, manual); });
+}
+
+function renderNotifStatus(st, manual){
+  var OK = "✅", WARN = "⚠️", BAD = "❌";
+  var rows = [];
+  var pidSaved = st.id && _queueNum && _selectedClinic &&
+    localStorage.getItem("prima_pid_saved") === (st.id + ":" + _queueNum + ":" + _selectedClinic.id);
+
+  // 1. installed
+  if(st.standalone) rows.push([OK, "Apl dipasang di skrin utama", "Ya"]);
+  else if(st.ios) rows.push([BAD, "Apl dipasang di skrin utama", "Belum — wajib untuk iPhone. Ikut langkah Tambah ke Skrin Utama."]);
+  else rows.push([WARN, "Apl dipasang di skrin utama", "Belum — disyorkan supaya notifikasi lebih stabil."]);
+
+  // 2. permission
+  if(!st.api) rows.push([BAD, "Kebenaran notifikasi", "Tidak tersedia dalam mod ini. iPhone: buka dari ikon skrin utama."]);
+  else if(st.perm === "granted") rows.push([OK, "Kebenaran notifikasi", "Dibenarkan"]);
+  else if(st.perm === "denied") rows.push([BAD, "Kebenaran notifikasi", "Disekat — buka Tetapan telefon → Notifikasi → PRIMA/Chrome → Benarkan."]);
+  else rows.push([WARN, "Kebenaran notifikasi", "Belum dibenarkan — tekan 'Benarkan Notifikasi'."]);
+
+  // 3. subscription
+  if(!st.sdk) rows.push([BAD, "Peranti didaftar untuk notifikasi", "Perkhidmatan notifikasi tidak dapat dimuatkan. Semak internet / matikan penyekat iklan."]);
+  else if(st.optedIn && st.id) rows.push([OK, "Peranti didaftar untuk notifikasi", "Berjaya didaftar"]);
+  else if(st.perm === "granted") rows.push([BAD, "Peranti didaftar untuk notifikasi", "Belum melanggan — tekan 'Benarkan Notifikasi'."]);
+  else rows.push([WARN, "Peranti didaftar untuk notifikasi", "Menunggu kebenaran."]);
+
+  // 4. queue number linked
+  if(!_queueNum) rows.push([WARN, "Nombor giliran dihubungkan", "Masukkan nombor giliran dahulu."]);
+  else if(pidSaved) rows.push([OK, "Nombor giliran dihubungkan", "No. " + String(_queueNum).padStart(4,"0") + " didaftar dengan klinik"]);
+  else if(st.id) rows.push([WARN, "Nombor giliran dihubungkan", "Belum disahkan ke klinik — semak internet, kemudian tekan 'Semak Semula'."]);
+  else rows.push([WARN, "Nombor giliran dihubungkan", "Menunggu pendaftaran peranti."]);
+
+  // 5. last push seen while app open (info)
+  var lp = parseInt(localStorage.getItem("prima_last_push") || "0");
+  if(lp){
+    var d = new Date(lp);
+    rows.push(["🕒", "Notifikasi terakhir diterima (apl dibuka)", pad(d.getHours()) + ":" + pad(d.getMinutes())]);
+  }
+
+  var hasBad  = rows.some(function(r){ return r[0] === BAD; });
+  var hasWarn = rows.some(function(r){ return r[0] === WARN; });
+  var level   = hasBad ? "bad" : hasWarn ? "warn" : "ok";
+  var title   = level === "ok"  ? "✅ Sedia menerima notifikasi — walaupun apl di latar"
+              : level === "bad" ? "❌ Notifikasi belum berfungsi"
+                                : "⚠️ Hampir siap";
+  window._notifLevel = level;
+
+  var ul = document.getElementById("tut-checks");
+  if(ul){
+    ul.innerHTML = rows.map(function(r){
+      return "<li><span class='chk-ico'>" + r[0] + "</span><span><span class='chk-lbl'>" +
+        tutEsc(r[1]) + "</span><br><span class='chk-det'>" + tutEsc(r[2]) + "</span></span></li>";
+    }).join("");
+  }
+  var ov = document.getElementById("tut-overall");
+  if(ov){ ov.textContent = title; ov.className = "tut-overall " + level; }
+
+  var pidEl = document.getElementById("tut-pid");
+  if(pidEl) pidEl.textContent = st.id || localStorage.getItem("prima_player_id") || "—";
+
+  var inst = document.getElementById("tut-btn-install");
+  if(inst) inst.hidden = !(window._deferredPrompt && !st.standalone);
+  var en = document.getElementById("tut-btn-enable");
+  if(en) en.hidden = (level === "ok");
+
+  // FAB: dot colour + shake until everything is OK and the guide has been opened once
+  var fab = document.getElementById("tut-fab");
+  if(fab){
+    var seen = false;
+    try{ seen = localStorage.getItem("prima_tut_seen") === "1"; }catch(e){}
+    fab.classList.remove("st-ok","st-warn","st-bad");
+    fab.classList.add("st-" + level);
+    fab.classList.toggle("shake", !(level === "ok" && seen));
+  }
+
+  if(manual){
+    var m = document.getElementById("tut-test-msg");
+    if(m){ m.style.color = "var(--text2)"; m.textContent = "Status dikemas kini " + pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()); }
+  }
+}
+
+(function initTutorial(){
+  renderTutorialMedia();
+  var d = document.getElementById("tut-dialog");
+  if(d){
+    d.addEventListener("close", function(){
+      try{ localStorage.setItem("prima_tut_seen","1"); }catch(e){}
+      document.querySelectorAll("#tut-dialog video").forEach(function(v){ try{ v.pause(); }catch(e){} });
+      refreshNotifStatus();
+    });
+  }
+  setTimeout(refreshNotifStatus, 2500);
+  setInterval(refreshNotifStatus, 20000);
+})();
+window.refreshNotifStatus = refreshNotifStatus;
 </script>
 
 </body>
